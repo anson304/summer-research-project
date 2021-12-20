@@ -35,7 +35,7 @@ qe-stock.o: searcher.C
 table-pm.o: indexer.C
 	g++ -c -o $@ $(TABLE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
-qe-table-pm.o: qe-table-pm.C
+qe-table-pm.o: searcher.C
 	g++ -c -o $@ $(QE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 #qe-table-pm-seq.o: qe-table-pm-seq.C
@@ -47,7 +47,7 @@ qe-table-pm.o: qe-table-pm.C
 table-sst.o: indexer.C
 	g++ -c -o $@ $(TABLE_SST) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
-qe-table-sst.o: qe-table-sst.C
+qe-table-sst.o: searcher.C
 	g++ -c -o $@ $(TABLE_SST) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 
