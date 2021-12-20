@@ -614,10 +614,6 @@ int lookup(struct pass0_state *ps, char *word) {
 }
 
 int pass0(int cid, FILE *input, DID did, int *pass0files, struct pass0_state *ps) {
-#ifdef DEBUG
-  printf("pass0\n");
-#endif
-
   char *p;
   struct Bucket *bu;
   struct Block *bl;
