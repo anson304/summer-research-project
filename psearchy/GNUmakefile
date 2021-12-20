@@ -20,7 +20,7 @@ OBJS9 := args.o qe-cmap-pm-seq.o
 OBJS10 := args.o table-sst.o
 OBJS11 := args.o qe-table-sst.o
 
-cmap-pm.o: cmap-pm.C
+cmap-pm.o: indexer.C
 	g++ -c -o $@ $(CMAP_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 qe-cmap-pm.o: qe-cmap-pm.C
@@ -29,10 +29,7 @@ qe-cmap-pm.o: qe-cmap-pm.C
 qe-stock.o: qe-stock.C
 	g++ -c -o $@ $(TABLE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
-table-dram.o: table-dram.C
-	g++ -c -o $@ $(TABLE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
-
-table-pm.o: table-pm.C
+table-pm.o: indexer.C
 	g++ -c -o $@ $(TABLE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 qe-table-pm.o: qe-table-pm.C
@@ -44,7 +41,7 @@ qe-table-pm-seq.o: qe-table-pm-seq.C
 qe-cmap-pm-seq.o: qe-cmap-pm-seq.C
 	g++ -c -o $@ $(CMAP_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
-table-sst.o: table-sst.C
+table-sst.o: indexer.C
 	g++ -c -o $@ $(TABLE_SST) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 qe-table-sst.o: qe-table-sst.C
