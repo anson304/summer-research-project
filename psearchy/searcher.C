@@ -1,17 +1,6 @@
 
 #define LINUX
-//#define PMEM_DEBUG
-//#define DEBUG
-//#define TABLE_NVM
-//#define SPILL_NVM
-//#define OBIN_NVM
-//#define ODB_NVM
-//#define CLFLUSH
-
-//#define CACHE_DATA
-
 #define TIMER
-//#define SYNC
 
 #include <libpmemkv.h>
 #include <libpmem.h>
@@ -57,17 +46,10 @@ assert(expr);                                                            \
 
 #define LOG(msg) puts(msg)
 
-//static const long long N2F_DB_SIZE = 1024 * 1024 * 1024;
-//static const long long OBIN_SIZE =   1024 * 1024 * 1024;
-
-
-// #define COUNTER
-
 const char *tmpdir;
 const char *pmemdir;
 const char *config = "mkdb.config";
 const long long GB = 1024UL*1024UL*1024UL;
-//pthread_mutex_t input_lock;
 extern int errno;
 unsigned maxwordlen;
 string prefix;
@@ -83,20 +65,12 @@ int order = 0;
 int threaded = 1;
 int dblim = 0;
 
-// pmemkv db
-//pmemkv_db *w2b_db = NULL;
-//pmemkv_db *n2f_db = NULL;
+pmemkv_db *w2b_db = NULL;
+pmemkv_db *n2f_db = NULL;
 
-
-extern int nprimes, primes[];
-
-#define NWORDS 3000
-#define MAXDIDBUFFER 512
 #define MAXWORDLENGTH 64 // Anson
-
-
-
 #define BLOCKSIZE 128
+
 struct Block {
     int next; // next block
     int n; //number of groups of Tags
@@ -104,11 +78,11 @@ struct Block {
 };
 
 struct Bucket {
-    //  char *word;
-    int word;
+    char word[MAXWORDLEN];
     int b0; // first block
     int bN; // last block
-    unsigned n; //number of blocks
+    unsigned n; //number of postings
+    int used;
 };
 
 struct timer {
@@ -162,26 +136,10 @@ static void print_timer(struct timer *t, int cid) {
     printf("%.6f\n", t[cid].agg);
 }
 
-#ifdef CLFLUSH
-inline static void cl_flush(volatile void *p) {
-    asm volatile ("clflushopt (%0)" :: "r"(p));
-}
-
-inline static void s_fence () {
-    asm volatile("sfence" : : : "memory");
-}
-
-inline static void __flush__(volatile void *p) {
-    cl_flush(p);
-    s_fence();
-}
-#endif
-
 struct timer timer_main;
 struct timer timer_alloc_table;
 struct timer *timer_query;
 
-//#define NBYTES   (maxmem/4)  // number of bytes per data structure
 
 struct pass0_state {
     char *wordbytes;
@@ -205,13 +163,10 @@ struct pass0_state_info {
 
 };
 
-int hash_primes[] = { 0, 0, 0, 0, 0, 53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157, 98317, 196613, 393241, 786433, 1572869, 3145739, 6291469, 12582917, 25165843, 50331653, 100663319, 201326611, 402653189, 805306457, 1610612741};
 
 bool update_only;
-//struct pass0_state * pstate();
-//void *pstate_close();
+
 float printrusage(int init);
-void query_term(char *term, struct pass0_state *ps);
 
 static struct sharedmem {
     volatile int run;
@@ -222,7 +177,6 @@ static struct sharedmem {
 
 
 #define NPMC 1
-
 
 struct cpuinfo
         {
@@ -246,9 +200,6 @@ initshared(void)
     shared->did = 1;
     shared->first = 1;
 }
-
-
-
 
 /*
  * mmap() doesn't like offsets not divisable by the page size.
@@ -277,10 +228,9 @@ xmmap(size_t len, int fd, off_t offset, void *& realp, size_t& reallen)
     return((char*)p + (offset - noffset));
 }
 
-PostIt* query_term_buffer(char *term, int *bufferi) {
+PostIt* query_term_stock(char *term, int *bufferi) {
 
     PostIt *bufferP;
-
     char dbname[100];
     char filename[100];
     int cid = 0;
@@ -293,7 +243,6 @@ PostIt* query_term_buffer(char *term, int *bufferi) {
     #ifdef TIMER
     start_timer(timer_query, 0);
     #endif
-
 
     sprintf(filename, "%s%d/%s-f-%d", "/mnt/nvme-1.0/anson/stock/large/db/db", cid, "ind", cid);
     fp = fopen(filename,"r");
@@ -312,10 +261,6 @@ PostIt* query_term_buffer(char *term, int *bufferi) {
         fprintf(stderr, "failed to open %s\n", dbname);
         exit(1);
     }
-
-
-
-    //printf("Timer Started\n");
 
     ind_offset offset;
     DBT key, data;
@@ -342,15 +287,11 @@ PostIt* query_term_buffer(char *term, int *bufferi) {
         memcpy(&offset,data.data,sizeof(offset));
     }
 
-
-    //printf("Fseeko/\n");
-
     if (fseeko(fp,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
         fprintf(stderr,"seek error\n");
 //        _max = _in_core_p = 0;
         return bufferP;
     }
-
 
     char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
     unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp);
@@ -387,11 +328,6 @@ PostIt* query_term_buffer(char *term, int *bufferi) {
         _in_core++;
     }
 
-
-
-
-
-
     if (w2p_db)
         w2p_db->close(w2p_db,0);
 
@@ -403,6 +339,80 @@ PostIt* query_term_buffer(char *term, int *bufferi) {
 
     return bufferP;
 }
+
+
+PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
+    //printf("New query: %s, len: %d\n", term, strlen(term));
+    struct Bucket *bu;
+    struct Block *bl;
+    PostIt *bufferP;
+    PostIt *infop;
+    int MAX_VAL_LEN = 64;
+    int counter = 0;
+
+    #ifdef TIMER
+    start_timer(timer_query, 0);
+    #endif
+
+#ifdef W2B_CMAP_PM
+    int s = pmemkv_exists(w2b_db, term, strlen(term)); // check if key exists
+    if (s == PMEMKV_STATUS_OK) {
+        printf("word found in cmap\n");
+        char val[MAX_VAL_LEN];
+        s = pmemkv_get_copy(w2b_db, term, strlen(term), val, MAX_VAL_LEN, NULL);
+        ASSERT(s == PMEMKV_STATUS_OK);
+        //printf("index:%s\n", val);
+        bu = &ps->buckets[atoi(val)];
+    } else if (s == PMEMKV_STATUS_NOT_FOUND) {
+        printf("word not found in cmap\n");
+    } else {
+        printf("error with cmap\n");
+        exit(1);
+    }
+#else
+    bu = &ps->buckets[lookup(ps, term)];
+#endif
+    bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
+    if(bu->used == 0){
+        printf("word not found\n");
+    } else {
+        bl = &ps->blocks[bu->b0];
+        bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
+        printf("Allocated buffer for %d postings\n", bu->n);
+
+        while (1) {
+            for (int i=0; i<bl->n; i++) {
+                infop = bufferP + *bufferi;
+                infop->dn = bl->p[i].dn;
+                infop->wc = bl->p[i].wc;
+                ++*bufferi;
+            }
+            if (bl->next != 0) {
+                bl = &ps->blocks[bl->next];
+            } else {
+                break;
+            }
+        }
+    }
+    #ifdef TIMER
+    end_timer(timer_query, 0);
+    #endif
+    //printf("Counter: %d\n", counter);
+    return bufferP;
+}
+
+static int open_kv(char *engine, char *path, pmemkv_db **kv) {
+    pmemkv_config *cfg = pmemkv_config_new();
+    ASSERT(cfg != NULL);
+
+    int s = pmemkv_config_put_path(cfg, path);
+    ASSERT(s == PMEMKV_STATUS_OK);
+    s = pmemkv_open(engine, cfg, pmemkv_db);
+    ASSERT(s == PMEMKV_STATUS_OK);
+    ASSERT(kv != NULL);
+    return 0;
+}
+
 
 int get_kv_callback(const char *k, size_t kb, const char *value, size_t value_bytes, void *arg) {
     printf("   visited: %s\n", k);
@@ -458,7 +468,6 @@ int main(int argc, char *argv[]) {
 #ifdef TIMER
     start_timer(&timer_main,0);
 #endif
-    printf("Query: %s\n", term);
     Args *a = new Args(config);
     maxwordlen = a->nget<unsigned>("maxwordlen", 100);
 
@@ -475,83 +484,81 @@ int main(int argc, char *argv[]) {
     }
 
 
+#ifdef PM_TABLE
+  #ifdef TIMER
+    start_timer(&timer_alloc_table, cid);
+  #endif
+    char psinfo_path[100];
+    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+    size_t psinfo_mapped_len;
 
-//  #ifdef TIMER
-//    start_timer(&timer_alloc_table, cid);
-//  #endif
+    char buckets_path[100];
+    sprintf(buckets_path, "%s/ps/buckets", pmemdir);
+    size_t buckets_mapped_len;
+
+    char blocks_path[100];
+    sprintf(blocks_path, "%s/ps/blocks", pmemdir);
+    size_t blocks_mapped_len;
+    int is_pmem;
 //
-//  #ifdef TIMER
-//    end_timer(&timer_alloc_table, cid);
-//  #endif
+//    if ((ps.psinfo = (struct pass0_state_info *) pmem_map_file(psinfo_path, sizeof(struct pass0_state_info), PMEM_FILE_CREATE, 0666, &psinfo_mapped_len, &is_pmem)) == NULL) {
+//        perror("pmem_map_file");
+//        exit(1);
+//    }
+//
+//    if ((ps.buckets=(struct Bucket *)pmem_map_file(buckets_path, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PMEM_FILE_CREATE, 0666, &buckets_mapped_len, &is_pmem)) == NULL) {
+//        perror("pmem_map_file");
+//        exit(1);
+//    }
+//
+//    if ((ps.blocks=(struct Block *)pmem_map_file(blocks_path, ps.psinfo->maxblocks * sizeof(struct Block), PMEM_FILE_CREATE, 0666, &blocks_mapped_len, &is_pmem)) == NULL) {
+//        perror("pmem_map_file");
+//        exit(1);
+//    }
+//    assert(ps.blocks && ps.buckets);
 
+    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
+    int buckets_file = open (buckets_path, O_RDONLY, 0640);
+    int blocks_file = open (blocks_path, O_RDONLY, 0640);
 
-#ifdef COUNTER
-    read_counters(cid);
-    for (int i = 0; i < NPMC; i++) {
-        atomic_add64_return(pmccount[i], &(shared->tot));
-        printf("%d: pmc %llu:\n", cid, (unsigned long long)pmccount[i]);
-    }
+    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+    ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_SHARED, buckets_file, 0);
+    ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
+
+  #ifdef TIMER
+    end_timer(&timer_alloc_table, cid);
+  #endif
 #endif
 
-    // todo query
-    int cid = 0;
-    // print keys
-    //pmemkv_get_all(w2b_db, &get_kv_callback, NULL);
+#ifdef W2B_CMAP_PM
+    char w2b_dbname[100]; // word to bucket db name
+    sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
+    open_kv("cmap", w2b_dbname, &w2b_db);
+#endif
 
-    //printf("Query:\n");
+    printf("Query: %s\n", term);
+    int cid = 0;
     int bufferi = 0;
 
-//    srand(time(NULL));
-//    int rn = rand() % 3000;
-//    int counter = 0;
+    PostIt *bufferResult;
 
-    PostIt *bufferResult = query_term_buffer(term, &bufferi);
+#ifdef PM_TABLE
+    bufferResult = query_term_pm(term, &bufferi);
+#else
+    bufferResult = query_term_stock(term, &bufferi);
+#endif
+
     if (bufferi > 0) {
         free (bufferResult);
     }
 
-    printf("Query time: ");
-    print_timer(timer_query, cid);
-
-
-//    while (fgets(term, MAXWORDLENGTH, stdin) != NULL) {
-//        term[strcspn(term, "\n")] = 0;
-//        if (counter == rn) {
-//            query_term_buffer(term, bufferP, &bufferi);
-//            print_timer(timer_query, cid);
-//            reset_Timer(timer_query, cid);
-//        }
-//        counter++;
-//
-//    }
-
-//    printf("bufferi: %d\n",bufferi);
-
-
-
-#ifdef COUNTER
-printf("tot = %llu\n", (unsigned long long)shared->tot);
-#endif
-
-// fprintf(stdout, "%d: ", ncore);
-// float r = printrusage(0);
-// fprintf(stdout, " throughput: %f jobs/hour/core", ((60*60)  / r) / ncore);
-// fprintf(stdout, "\n");
-
-// printf("npfs: %d\n", get_npfs());
-
-// LOG("Closing w2b database\n"); pmemkv_close(w2b_db);
-// LOG("Closing n2f database\n"); pmemkv_close(n2f_db);
-
-
 
 #ifdef TIMER
-//printf("query: ");
-//print_timer(timer_query, 0);
-end_timer(&timer_main,0);
+    end_timer(&timer_main,0);
+    printf("Query time: ");
+    print_timer(timer_query, cid);
 //print_uni_timer(&timer_main);
 //print_uni_timer(&timer_alloc_table);
-
 #endif
 
 exit(0);
