@@ -4,9 +4,9 @@ CXXFLAGS += -I$(LDB) -I/home/shoaiba/pmem/pmemkv/src -I/home/shoaiba/pmem/pmdk/i
 LDFLAGS += -L/home/shoaiba/mosbench/libdb/build/db4.7-mod 
 LDFLAGS += -L/home/shoaiba/pmem/pmemkv/lib -L/home/shoaiba/pmem/pmdk/lib
 
-TABLE_PM += -DRAM_CACHE -N2F_CMAP_PM -FLUSH
-CMAP_PM += -DRAM_CACHE -N2F_CMAP_PM -W2B_CMAP_PM -FLUSH
-TABLE_SST += -DRAM_CACHE -N2F_CMAP_PM -SST -FLUSH
+TABLE_PM += -DDRAM_CACHE -DN2F_CMAP_PM -DFLUSH
+CMAP_PM += -DDRAM_CACHE -DN2F_CMAP_PM -DW2B_CMAP_PM -DFLUSH
+TABLE_SST += -DDRAM_CACHE -DN2F_CMAP_PM -DSST -DFLUSH
 
 
 OBJS1 := args.o cmap-pm.o
