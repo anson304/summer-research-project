@@ -656,6 +656,7 @@ int pass0(int cid, FILE *input, DID did, int *pass0files, struct pass0_state *ps
 
       if (strlen(p) < MAXWORDLEN) {
         #ifdef W2B_CMAP_PM
+        int s = 0;
         if (s == PMEMKV_STATUS_OK) {
           // printf("word found in cmap\n");
           char val[MAX_VAL_LEN];
