@@ -209,7 +209,7 @@ initshared(void)
   shared->first = 1;
 }
 
-static int init_kv(char *engine, char *path, size_t db_size, pmemkv_db *kv) {
+static int init_kv(char *engine, char *path, size_t db_size, pmemkv_db **kv) {
     pmemkv_config *cfg = pmemkv_config_new();
     ASSERT(cfg != NULL);
 
@@ -220,7 +220,7 @@ static int init_kv(char *engine, char *path, size_t db_size, pmemkv_db *kv) {
     s = pmemkv_config_put_force_create(cfg, true);
     ASSERT(s == PMEMKV_STATUS_OK);
     printf("Opening pmemkv database\n");
-    s = pmemkv_open(engine, cfg, &kv);
+    s = pmemkv_open(engine, cfg, kv);
     ASSERT(s == PMEMKV_STATUS_OK);
     ASSERT(kv != NULL);
     return 0;
@@ -368,7 +368,7 @@ int main(int argc, char *argv[]) {
   char n2f_db_path[100];
   uint64_t N2F_DB_SIZE = 5 * GB;
   sprintf(n2f_db_path, "%s/n2f.db", pmemdir);
-  int s = init_kv("cmap",n2f_db_path, N2F_DB_SIZE, n2f_db);
+  int s = init_kv("cmap",n2f_db_path, N2F_DB_SIZE, &n2f_db);
   ASSERT(n2f_db != NULL);
   #ifdef DEBUG
     printf("Opened N2F DB\n");
@@ -401,7 +401,7 @@ int main(int argc, char *argv[]) {
   char w2b_dbname[100]; // word to bucket db name
   sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
   uint64_t W2B_DB_SIZE = 5*GB; //create a 1 Gb file
-  s = init_kv("cmap", w2b_dbname, W2B_DB_SIZE, w2b_db);
+  s = init_kv("cmap", w2b_dbname, W2B_DB_SIZE, &w2b_db);
   #ifdef DEBUG
   printf("Opened W2B DB\n");
   #endif
