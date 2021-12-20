@@ -54,6 +54,8 @@
 
 const char *tmpdir;
 const char *pmemdir;
+const char *config = "mkdb.config";
+unsigned maxwordlen;
 const long long GB = 1024UL*1024UL*1024UL;
 int ncore = 1;
 long long D2F_DB_SIZE = 0;
@@ -80,6 +82,7 @@ char files[NFILES][MAXFILENAME];
 
 #define BLOCKSIZE 128
 #define MAXWORDLEN 64
+#define MAX_VAL_LEN 16
 
 struct Block {
   int next; // next block
@@ -217,7 +220,7 @@ static int init_kv(char *engine, char *path, size_t db_size, pmemkv_db *kv) {
     s = pmemkv_config_put_force_create(cfg, true);
     ASSERT(s == PMEMKV_STATUS_OK);
     printf("Opening pmemkv database\n");
-    s = pmemkv_open(engine, cfg, kv);
+    s = pmemkv_open(engine, cfg, &kv);
     ASSERT(s == PMEMKV_STATUS_OK);
     ASSERT(kv != NULL);
     return 0;
@@ -423,88 +426,6 @@ int main(int argc, char *argv[]) {
   exit(0);
 }
 
-
-
-static void sst(struct pass0_state *ps) {
-    printf("Creating sst\n");
-
-    char *fp;
-    unsigned offset = 0;
-    char* sst_path = "/mnt/pmem1.0/ansont/sst";
-    int is_pmem;
-    size_t sst_mapped_len;
-    long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps->psinfo->blocki + ps->psinfo->bucketi*sizeof(unsigned);
-
-    #ifdef TIMER
-    start_timer(timer_sst,0);
-    #endif
-
-    if ((fp = (char *)pmem_map_file(sst_path, sst_size, PMEM_FILE_CREATE, 0666, &sst_mapped_len, &is_pmem)) == NULL) {
-        perror("pmem_map_file");
-        exit(1);
-    }
-
-    memset(fp, 0, sst_size);
-
-    // cmap
-    pmemkv_db *sst_db = NULL;
-    printf("Creating a new config\n");
-    pmemkv_config *cfg = pmemkv_config_new();
-    ASSERT(cfg != NULL);
-
-    int s = pmemkv_config_put_path(cfg, "/mnt/pmem1.0/ansont/sst.db");
-    ASSERT(s == PMEMKV_STATUS_OK);
-    s = pmemkv_config_put_size(cfg, 5*GB);
-    ASSERT(s == PMEMKV_STATUS_OK);
-    s = pmemkv_config_put_force_create(cfg, true);
-    ASSERT(s == PMEMKV_STATUS_OK);
-    printf("Opening sst database\n");
-    s = pmemkv_open("cmap", cfg, &sst_db);
-    ASSERT(s == PMEMKV_STATUS_OK);
-    ASSERT(sst_db != NULL);
-
-
-
-    for (int i = 0; i < ps->psinfo->bucketi; i++) {
-        struct Bucket *bu = &ps->buckets[i];
-        struct Block *bl = &ps->blocks[bu->b0];
-
-        char val[MAX_VAL_LEN];
-        sprintf(val, "%d", offset);
-        s = pmemkv_put(sst_db, bu->word, strlen(bu->word), val, MAX_VAL_LEN);
-        ASSERT(s == PMEMKV_STATUS_OK);
-
-        memcpy(fp+offset, &bu->n, sizeof(bu->n));
-        //*(fp+offset) = bu->n;
-        offset += sizeof(bu->n);
-        //xwrite2(&(bu->n), sizeof(bu->n), fp, &offset);
-
-
-        while (1) {
-            for (int pi=0; pi<bl->n; pi++) {
-                memcpy(fp+offset, &bl->p[pi], sizeof(PostIt));
-                //*(fp+offset) = bl->p[pi];
-                offset += sizeof(PostIt);
-                //xwrite2(&bl->p[pi], sizeof(PostIt), fp, &offset);
-            }
-            if (bl->next != 0) {
-                bl = &ps->blocks[bl->next];
-            } else {
-                break;
-            }
-        }
-
-
-    }
-
-    #ifdef TIMER
-    end_timer(timer_sst,0);
-    #endif
-
-    pmem_persist(fp, sst_mapped_len);
-    pmem_unmap(sst_path, sst_mapped_len);
-    pmemkv_close(sst_db);
-}
 
 void *dofiles()
 {
