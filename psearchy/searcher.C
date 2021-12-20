@@ -565,13 +565,12 @@ int main(int argc, char *argv[]) {
 #endif
 
     printf("Query: %s\n", term);
-    int cid = 0;
     int bufferi = 0;
 
     PostIt *bufferResult;
 
 #ifdef PM_TABLE
-    bufferResult = query_term_pm(term, &bufferi);
+    bufferResult = query_term_pm(term, &ps, &bufferi);
 #else
     bufferResult = query_term_stock(term, &bufferi);
 #endif
