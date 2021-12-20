@@ -9,6 +9,7 @@ CMAP_PM += -DN2F_CMAP_PM -DW2B_CMAP_PM -DFLUSH
 TABLE_SST += -DN2F_CMAP_PM -DSST -DFLUSH
 QE_PM += -DPM_TABLE
 QE_CMAP_PM += -DPM_TABLE -DW2B_CMAP_PM
+DRAM_CACHE_PM += -DPM_TABLE -DDRAM_CACHE
 TABLE_SST += -DSST
 
 
@@ -22,6 +23,7 @@ OBJS8 := args.o qe-table-pm-seq.o
 OBJS9 := args.o qe-cmap-pm-seq.o
 OBJS10 := args.o table-sst.o
 OBJS11 := args.o qe-table-sst.o
+OBJS12 := args.o qe-table-pm-dc.o
 
 cmap-pm.o: indexer.C
 	g++ -c -o $@ $(CMAP_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
@@ -37,6 +39,9 @@ table-pm.o: indexer.C
 
 qe-table-pm.o: searcher.C
 	g++ -c -o $@ $(QE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
+
+qe-table-pm-dc.o: searcher.C
+	g++ -c -o $@ $(DRAM_CACHE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 #qe-table-pm-seq.o: qe-table-pm-seq.C
 #	g++ -c -o $@ $(TABLE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
@@ -97,6 +102,10 @@ table-sst: $(OBJS10)
 qe-table-sst: $(OBJS11)
 	g++ -o $@ $(CXXFLAGS)  $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 	mv qe-table-sst bin
+
+qe-table-pm-dc: $(OBJS12)
+	g++ -o $@ $(CXXFLAGS)  $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
+	mv qe-table-pm-dc bin
 
 .PHONY: clean
 clean:

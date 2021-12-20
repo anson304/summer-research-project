@@ -450,7 +450,12 @@ int main(int argc, char *argv[]) {
     printrusage(1);
 
     tmpdir = "/tmp";
+
+#ifdef DRAM_CACHE
+    pmemdir = "/mnt/pmem0.0/ansont";
+#else
     pmemdir = "/mnt/pmem1.0/ansont";
+#endif
 
     if(getenv("TMPDIR"))
         tmpdir = getenv("TMPDIR");
