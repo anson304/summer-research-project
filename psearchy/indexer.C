@@ -655,8 +655,8 @@ int pass0(int cid, FILE *input, DID did, int *pass0files, struct pass0_state *ps
       ps->infoi++;
 
       if (strlen(p) < MAXWORDLEN) {
-        #ifdef W2B_CMAP_PM
-        int s = 0;
+        #ifdef W2B_CMAP_PM \
+        int s = pmemkv_exists(w2b_db, p, strlen(p)); // check if key exists
         if (s == PMEMKV_STATUS_OK) {
           // printf("word found in cmap\n");
           char val[MAX_VAL_LEN];
