@@ -78,7 +78,7 @@ struct Block {
 };
 
 struct Bucket {
-    char word[MAXWORDLEN];
+    char word[MAXWORDLENGTH];
     int b0; // first block
     int bN; // last block
     unsigned n; //number of postings
@@ -226,6 +226,30 @@ xmmap(size_t len, int fd, off_t offset, void *& realp, size_t& reallen)
     realp = p;
     reallen = nlen;
     return((char*)p + (offset - noffset));
+}
+
+int lookup(struct pass0_state *ps, char *word) {
+    int i;
+    unsigned int h;
+    unsigned int k = 0;
+    unsigned int o;
+
+    for(i = 0; word[i]; i++)
+        k = (k * 33) + word[i];
+    h = k % ps->psinfo->maxbuckets;
+    o = 1 + (k % (ps->psinfo->maxbuckets - 1));
+    for(i = 0; i < ps->psinfo->maxbuckets; i++){
+        if(ps->buckets[h].used == 0)
+            return(h);
+        if(strcmp(ps->buckets[h].word, word) == 0)
+            //printf("samebucket\n");
+            return(h);
+        h += o;
+        if(h >= (unsigned int)ps->psinfo->maxbuckets)
+            h = h - ps->psinfo->maxbuckets;
+    }
+    fprintf(stderr, "pedsort: hash table full\n");
+    exit(1);
 }
 
 PostIt* query_term_stock(char *term, int *bufferi) {
@@ -407,7 +431,7 @@ static int open_kv(char *engine, char *path, pmemkv_db **kv) {
 
     int s = pmemkv_config_put_path(cfg, path);
     ASSERT(s == PMEMKV_STATUS_OK);
-    s = pmemkv_open(engine, cfg, pmemkv_db);
+    s = pmemkv_open(engine, cfg, kv);
     ASSERT(s == PMEMKV_STATUS_OK);
     ASSERT(kv != NULL);
     return 0;
@@ -470,6 +494,7 @@ int main(int argc, char *argv[]) {
 #endif
     Args *a = new Args(config);
     maxwordlen = a->nget<unsigned>("maxwordlen", 100);
+    int cid = 0;
 
     // Increase my FD limit as much as possible
     struct rlimit fdlim;
@@ -483,11 +508,14 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
+    struct pass0_state ps;
+
 
 #ifdef PM_TABLE
   #ifdef TIMER
     start_timer(&timer_alloc_table, cid);
   #endif
+
     char psinfo_path[100];
     sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
     size_t psinfo_mapped_len;
