@@ -430,7 +430,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
 
 
 
-PostIt* query_term_sst(char *term, struct pass0_state *ps, int *bufferi) {
+PostIt* query_term_sst(char *term, char *fp, int *bufferi) {
     //printf("New query: %s, len: %d\n", term, strlen(term));
     struct Bucket *bu;
     struct Block *bl;
@@ -606,6 +606,7 @@ int main(int argc, char *argv[]) {
     char blocks_path[100];
     sprintf(blocks_path, "%s/ps/blocks", pmemdir);
     size_t blocks_mapped_len;
+
     int is_pmem;
 //
 //    if ((ps.psinfo = (struct pass0_state_info *) pmem_map_file(psinfo_path, sizeof(struct pass0_state_info), PMEM_FILE_CREATE, 0666, &psinfo_mapped_len, &is_pmem)) == NULL) {
@@ -637,6 +638,42 @@ int main(int argc, char *argv[]) {
   #endif
 #endif
 
+
+
+
+    char *fp;
+
+#ifdef SST
+  #ifdef TIMER
+    start_timer(&timer_alloc_table, cid);
+  #endif
+
+    char psinfo_path[100];
+    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+    size_t psinfo_mapped_len;
+    char sst_path[100];
+    sprintf(sst_path, "%s/ps/sst", pmemdir);
+    size_t sst_mapped_len;
+
+    int is_pmem;
+
+    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
+    int sst_file = open (sst_path, O_RDONLY, 0640);
+
+    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+
+    long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps.psinfo->blocki + ps.psinfo->bucketi*sizeof(unsigned);
+
+    fp = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+
+  #ifdef TIMER
+    end_timer(&timer_alloc_table, cid);
+  #endif
+#endif
+
+
+
+
 #ifdef W2B_CMAP_PM
     char w2b_dbname[100]; // word to bucket db name
     sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
@@ -649,7 +686,7 @@ int main(int argc, char *argv[]) {
     PostIt *bufferResult;
 
 #ifdef SST
-    bufferResult = query_term_sst(term, &ps, &bufferi);
+    bufferResult = query_term_sst(term, &fp, &bufferi);
 #elif PM_TABLE
     bufferResult = query_term_pm(term, &ps, &bufferi);
 #else
