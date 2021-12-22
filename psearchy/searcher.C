@@ -436,7 +436,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
     size_t psinfo_mapped_len;
     char sst_path[100];
-    sprintf(sst_path, "%s/ps/sst", pmemdir);
+    sprintf(sst_path, "%s/sst", pmemdir);
     size_t sst_mapped_len;
 
     int is_pmem;
