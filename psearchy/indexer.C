@@ -281,51 +281,53 @@ static void sst(struct pass0_state *ps) {
     }
 
 
-    for (int i = 0; i < ps->psinfo->bucketi; i++) {
+    for (int i = 0; i < ps->psinfo->maxbuckets; i++) {
         struct Bucket *bu = &ps->buckets[i];
-        struct Block *bl = &ps->blocks[bu->b0];
 
-//        char val[MAX_VAL_LEN];
-//        sprintf(val, "%d", offset);
-//        s = pmemkv_put(sst_db, bu->word, strlen(bu->word), val, MAX_VAL_LEN);
-//        ASSERT(s == PMEMKV_STATUS_OK);
+        if (bu->used != 0) {
+            struct Block *bl = &ps->blocks[bu->b0];
 
-        DBT key, data;
-        bzero(&key,sizeof(key));
-        bzero(&data,sizeof(data));
+            //        char val[MAX_VAL_LEN];
+            //        sprintf(val, "%d", offset);
+            //        s = pmemkv_put(sst_db, bu->word, strlen(bu->word), val, MAX_VAL_LEN);
+            //        ASSERT(s == PMEMKV_STATUS_OK);
 
-        printf("mkdb try put: %s\n", bu->word);
+            DBT key, data;
+            bzero(&key,sizeof(key));
+            bzero(&data,sizeof(data));
 
-        key.data = (void *) bu->word;
-        key.size = strlen(bu->word) + 1;
-        data.data = &offset;
-        data.size = sizeof(offset);
-        if((err = w2p_db->put(w2p_db, NULL, &key, &data, DB_NOOVERWRITE)) != 0){
-            printf("mkdb: db->put failed %s\n", db_strerror(err));
-        } else {
-            printf("mkdb put: %s\n", bu->word);
+            printf("mkdb try put: %s\n", bu->word);
+
+            key.data = (void *) bu->word;
+            key.size = strlen(bu->word) + 1;
+            data.data = &offset;
+            data.size = sizeof(offset);
+            if((err = w2p_db->put(w2p_db, NULL, &key, &data, DB_NOOVERWRITE)) != 0){
+                printf("mkdb: db->put failed %s\n", db_strerror(err));
+            }
+
+
+            memcpy(fp+offset, &bu->n, sizeof(bu->n));
+            //*(fp+offset) = bu->n;
+            offset += sizeof(bu->n);
+            //xwrite2(&(bu->n), sizeof(bu->n), fp, &offset);
+
+
+            while (1) {
+                for (int pi=0; pi<bl->n; pi++) {
+                    memcpy(fp+offset, &bl->p[pi], sizeof(PostIt));
+                    //*(fp+offset) = bl->p[pi];
+                    offset += sizeof(PostIt);
+                    //xwrite2(&bl->p[pi], sizeof(PostIt), fp, &offset);
+                }
+                if (bl->next != 0) {
+                    bl = &ps->blocks[bl->next];
+                } else {
+                    break;
+                }
+            }
         }
 
-
-        memcpy(fp+offset, &bu->n, sizeof(bu->n));
-        //*(fp+offset) = bu->n;
-        offset += sizeof(bu->n);
-        //xwrite2(&(bu->n), sizeof(bu->n), fp, &offset);
-
-
-        while (1) {
-            for (int pi=0; pi<bl->n; pi++) {
-                memcpy(fp+offset, &bl->p[pi], sizeof(PostIt));
-                //*(fp+offset) = bl->p[pi];
-                offset += sizeof(PostIt);
-                //xwrite2(&bl->p[pi], sizeof(PostIt), fp, &offset);
-            }
-            if (bl->next != 0) {
-                bl = &ps->blocks[bl->next];
-            } else {
-                break;
-            }
-        }
 
 
     }
