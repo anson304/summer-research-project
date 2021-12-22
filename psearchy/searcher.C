@@ -70,6 +70,7 @@ pmemkv_db *n2f_db = NULL;
 
 #define MAXWORDLENGTH 64 // Anson
 #define BLOCKSIZE 128
+#define MAXFILENAME 200
 
 struct Block {
     int next; // next block
@@ -449,12 +450,14 @@ PostIt* query_term_sst(char *term, struct pass0_state *ps, int *bufferi) {
     }
 
 
+    string w = string(term);
+
     unsigned long long offset;
     DBT key, data;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
-    key.data = (void *)term.c_str();
-    key.size = term.size() + 1;
+    key.data = (void *)w.c_str();
+    key.size = w.size() + 1;
     data.data = &offset;
     data.size = sizeof(offset);
 
@@ -462,9 +465,9 @@ PostIt* query_term_sst(char *term, struct pass0_state *ps, int *bufferi) {
     start_timer(timer_query, 0);
     #endif
 
-    if ((db->get(db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
-        cout << w << ": no such word found in database" << endl;
-        return;
+    if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+        printf("no such word found in database: %s", w);
+        return NULL;
     }
     memcpy(&offset,data.data,sizeof(offset));
     printf("offset:%d\n", offset);
