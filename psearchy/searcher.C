@@ -444,11 +444,11 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
     int sst_file = open (sst_path, O_RDONLY, 0640);
 
-    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+    pass0_state_info psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
 
     long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps.psinfo->blocki + ps.psinfo->bucketi*sizeof(unsigned);
 
-    fp = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+    char *fp = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
 
 
