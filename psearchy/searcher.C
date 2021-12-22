@@ -686,7 +686,7 @@ int main(int argc, char *argv[]) {
     PostIt *bufferResult;
 
 #ifdef SST
-    bufferResult = query_term_sst(term, &fp, &bufferi);
+    bufferResult = query_term_sst(term, fp, &bufferi);
 #elif PM_TABLE
     bufferResult = query_term_pm(term, &ps, &bufferi);
 #else
