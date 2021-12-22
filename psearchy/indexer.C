@@ -720,6 +720,7 @@ int pass0(int cid, FILE *input, DID did, int *pass0files, struct pass0_state *ps
           if(bu->used == 0){
               ps->psinfo->bucketi++;
               bu->used = 1;
+              printf("Word: %s", p);
               memcpy(&bu->word, p, strlen(p));
 
               ps->wordi += len + skip;
