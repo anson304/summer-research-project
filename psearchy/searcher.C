@@ -495,7 +495,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
 
     printf("fp:%d\n", fp);
 
-    unsigned docCount = (unsigned)*(fp + offset);
+    unsigned docCount = *(fp + offset);
     printf("docCount:%d\n", docCount);
     offset += sizeof (unsigned);
 
