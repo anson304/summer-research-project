@@ -446,7 +446,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
 
     pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
 
-    long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps.psinfo->blocki + ps.psinfo->bucketi*sizeof(unsigned);
+    long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
 
     char *fp = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
