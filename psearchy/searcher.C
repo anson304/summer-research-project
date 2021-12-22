@@ -492,6 +492,9 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     }
     memcpy(&offset,data.data,sizeof(offset));
     printf("offset:%d\n", offset);
+
+    printf("fp:%d\n", fp);
+
     unsigned docCount = (unsigned)*(fp + offset);
     printf("docCount:%d\n", docCount);
     offset += sizeof (unsigned);
