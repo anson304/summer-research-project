@@ -306,7 +306,7 @@ static void sst(struct pass0_state *ps) {
                 printf("mkdb: db->put failed %s\n", db_strerror(err));
             }
 
-            printf("bu->n:%u\n", bu->n);
+            //printf("bu->n:%u\n", bu->n);
             memcpy(fp+offset, &bu->n, sizeof(bu->n));
 //            unsigned docCount = (unsigned) *(fp + offset);
 //            //printf("docCount:%u\n", docCount);

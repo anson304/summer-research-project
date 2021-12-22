@@ -334,7 +334,7 @@ PostIt* query_term_stock(char *term, int *bufferi) {
     _max = *((unsigned *)(wordbuf+w.size()+1));
 
     bufferP = (PostIt *)malloc(sizeof(PostIt)*_max);
-    printf("Allocated buffer for %d postings\n",_max);
+    //printf("Allocated buffer for %d postings\n",_max);
 
     PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp),(off_t)offset, _in_core_p_real, _in_core_p_sz);
     PostIt *infop;
@@ -404,7 +404,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
     } else {
         bl = &ps->blocks[bu->b0];
         bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
-        printf("Allocated buffer for %d postings\n", bu->n);
+        //printf("Allocated buffer for %d postings\n", bu->n);
 
         while (1) {
             for (int i=0; i<bl->n; i++) {
@@ -491,26 +491,26 @@ PostIt* query_term_sst(char *term, int *bufferi) {
         return NULL;
     }
     memcpy(&offset,data.data,sizeof(offset));
-    printf("offset:%d\n", offset);
+    //printf("offset:%d\n", offset);
 
-    printf("fp:%d\n", fp);
+    //printf("fp:%d\n", fp);
 
     unsigned docCount;
     //printf("docCount:%u\n", docCount);
     memcpy(&docCount, fp+offset, sizeof(docCount));
 
-    printf("docCount:%u\n", docCount);
+    //printf("docCount:%u\n", docCount);
     offset += sizeof (unsigned);
 
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
-    printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
+    //printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
 
     PostIt *_in_core = (PostIt *) (fp + offset);
     for (int i=0; i<docCount; i++) {
         infop = bufferP + *bufferi;
         infop->dn = _in_core->dn;
         infop->wc = _in_core->wc;
-        printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
+        //printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
         ++*bufferi;
         _in_core++;
     }
