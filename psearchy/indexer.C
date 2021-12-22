@@ -299,7 +299,7 @@ static void sst(struct pass0_state *ps) {
         data.data = &offset;
         data.size = sizeof(offset);
         if((err = w2p_db->put(w2p_db, NULL, &key, &data, DB_NOOVERWRITE)) != 0){
-            printf("mkdb: db->put failed %s\n");
+            printf("mkdb: db->put failed %s\n", db_strerror(err));
         }
 
         memcpy(fp+offset, &bu->n, sizeof(bu->n));
