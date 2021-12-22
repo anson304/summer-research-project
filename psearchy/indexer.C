@@ -94,7 +94,7 @@ struct Bucket {
     char word[MAXWORDLEN];
   int b0; // first block
   int bN; // last block
-  unsigned n; //number of postings
+  unsigned long long n; //number of postings
   int used;
 };
 
@@ -308,7 +308,7 @@ static void sst(struct pass0_state *ps) {
 
 
             memcpy(fp+offset, &bu->n, sizeof(bu->n));
-            unsigned docCount = *(fp + offset);
+            unsigned long long docCount = *(fp + offset);
             printf("docCount:%u\n", docCount);
             //*(fp+offset) = bu->n;
             offset += sizeof(bu->n);

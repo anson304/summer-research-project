@@ -82,7 +82,7 @@ struct Bucket {
     char word[MAXWORDLENGTH];
     int b0; // first block
     int bN; // last block
-    unsigned n; //number of postings
+    unsigned long long n; //number of postings
     int used;
 };
 
