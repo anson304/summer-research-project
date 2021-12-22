@@ -296,7 +296,7 @@ static void sst(struct pass0_state *ps) {
             bzero(&key,sizeof(key));
             bzero(&data,sizeof(data));
 
-            printf("mkdb try put: %s\n", bu->word);
+            //printf("mkdb try put: %s\n", bu->word);
 
             key.data = (void *) bu->word;
             key.size = strlen(bu->word) + 1;
@@ -723,7 +723,7 @@ int pass0(int cid, FILE *input, DID did, int *pass0files, struct pass0_state *ps
               ps->psinfo->bucketi++;
               bu->used = 1;
               strncpy(bu->word, p, sizeof(bu->word)-1);
-              printf("Word: %s\n", bu->word);
+              //printf("Word: %s\n", bu->word);
 
               ps->wordi += len + skip;
               bu->n = 0;
