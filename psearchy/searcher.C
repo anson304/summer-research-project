@@ -393,6 +393,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
         printf("error with cmap\n");
         exit(1);
     }
+
 #else
     bu = &ps->buckets[lookup(ps, term)];
 #endif
@@ -421,6 +422,76 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
     #ifdef TIMER
     end_timer(timer_query, 0);
     #endif
+    //printf("Counter: %d\n", counter);
+    return bufferP;
+}
+
+
+
+
+PostIt* query_term_sst(char *term, struct pass0_state *ps, int *bufferi) {
+    //printf("New query: %s, len: %d\n", term, strlen(term));
+    struct Bucket *bu;
+    struct Block *bl;
+    PostIt *bufferP;
+    PostIt *infop;
+    int MAX_VAL_LEN = 64;
+    int counter = 0;
+
+    DB *w2p_db;
+    char w2p_path[MAXFILENAME];
+    int err = db_create(&w2p_db, NULL, 0);
+    sprintf(w2p_path, "%s/w2p.db", pmemdir);
+    err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
+    if (err) {
+        fprintf(stderr, "failed to open %s\n", w2p_path);
+        exit(1);
+    }
+
+
+    unsigned long long offset;
+    DBT key, data;
+    bzero(&key,sizeof(key));
+    bzero(&data,sizeof(data));
+    key.data = (void *)term.c_str();
+    key.size = term.size() + 1;
+    data.data = &offset;
+    data.size = sizeof(offset);
+
+    #ifdef TIMER
+    start_timer(timer_query, 0);
+    #endif
+
+    if ((db->get(db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+        cout << w << ": no such word found in database" << endl;
+        return;
+    }
+    memcpy(&offset,data.data,sizeof(offset));
+    printf("offset:%d\n", offset);
+    unsigned docCount = *(fp + offset);
+    printf("docCount:%d\n", docCount);
+    offset += sizeof (unsigned);
+
+    bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
+    printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
+
+    PostIt *_in_core = (PostIt *) (fp + offset);
+    for (int i=0; i<docCount; i++) {
+        infop = bufferP + *bufferi;
+        infop->dn = _in_core->dn;
+        infop->wc = _in_core->wc;
+        printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
+        ++*bufferi;
+        _in_core++;
+    }
+
+
+    #ifdef TIMER
+    end_timer(timer_query, 0);
+    #endif
+    if (w2p_db)
+        w2p_db->close(w2p_db,0);
+
     //printf("Counter: %d\n", counter);
     return bufferP;
 }
@@ -574,7 +645,9 @@ int main(int argc, char *argv[]) {
 
     PostIt *bufferResult;
 
-#ifdef PM_TABLE
+#ifdef SST
+    bufferResult = query_term_sst(term, &ps, &bufferi);
+#elif PM_TABLE
     bufferResult = query_term_pm(term, &ps, &bufferi);
 #else
     bufferResult = query_term_stock(term, &bufferi);
