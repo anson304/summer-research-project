@@ -274,7 +274,7 @@ static void sst(struct pass0_state *ps) {
         fprintf(stderr,"failed to create db %s\n", strerror(errno));
         exit(2);
     }
-    err = db->open(db, NULL, dbfile, NULL, DB_BTREE, DB_TRUNCATE|DB_CREATE, 0666);
+    err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_TRUNCATE|DB_CREATE, 0666);
     if (err) {
         fprintf(stderr,"failed to open db %s\n", strerror(errno));
         exit(2);
@@ -298,8 +298,8 @@ static void sst(struct pass0_state *ps) {
         key.size = strlen(bu->word) + 1;
         data.data = &offset;
         data.size = sizeof(offset);
-        if((err = w2p.db->put(w2p.db, NULL, &key, &data, DB_NOOVERWRITE)) != 0){
-            fprintf("mkdb: db->put failed %s\n");
+        if((err = w2p_db->put(w2p_db, NULL, &key, &data, DB_NOOVERWRITE)) != 0){
+            printf("mkdb: db->put failed %s\n");
         }
 
         memcpy(fp+offset, &bu->n, sizeof(bu->n));
@@ -330,7 +330,7 @@ static void sst(struct pass0_state *ps) {
     #endif
 
     assert(w2p_db);
-    if(w2p_db->close(w2p->db, 0) != 0){
+    if(w2p_db->close(w2p_db, 0) != 0){
         fprintf(stderr, "pedsort: db close failed %s\n", strerror(errno));
         exit(1);
     }
