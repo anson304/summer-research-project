@@ -294,6 +294,8 @@ static void sst(struct pass0_state *ps) {
         bzero(&key,sizeof(key));
         bzero(&data,sizeof(data));
 
+        printf("mkdb try put: %s\n", bu->word);
+
         key.data = (void *) bu->word;
         key.size = strlen(bu->word) + 1;
         data.data = &offset;
