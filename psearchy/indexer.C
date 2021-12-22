@@ -308,6 +308,8 @@ static void sst(struct pass0_state *ps) {
 
 
             memcpy(fp+offset, &bu->n, sizeof(bu->n));
+            unsigned docCount = *(fp + offset);
+            printf("docCount:%u\n", docCount);
             //*(fp+offset) = bu->n;
             offset += sizeof(bu->n);
             //xwrite2(&(bu->n), sizeof(bu->n), fp, &offset);
