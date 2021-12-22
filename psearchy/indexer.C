@@ -94,7 +94,7 @@ struct Bucket {
     char word[MAXWORDLEN];
   int b0; // first block
   int bN; // last block
-  unsigned long long n; //number of postings
+  unsigned n; //number of postings
   int used;
 };
 
@@ -306,9 +306,9 @@ static void sst(struct pass0_state *ps) {
                 printf("mkdb: db->put failed %s\n", db_strerror(err));
             }
 
-
+            printf("bu->n:%u\n", bu->n);
             memcpy(fp+offset, &bu->n, sizeof(bu->n));
-            unsigned long long docCount = *(fp + offset);
+            unsigned docCount = *(fp + offset);
             printf("docCount:%u\n", docCount);
             //*(fp+offset) = bu->n;
             offset += sizeof(bu->n);
