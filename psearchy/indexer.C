@@ -230,8 +230,9 @@ static void sst(struct pass0_state *ps) {
     printf("Creating sst\n");
 
     char *fp;
-    unsigned offset = 0;
-    char* sst_path = "/mnt/pmem1.0/ansont/sst";
+    unsigned long long offset = 0;
+    char sst_path[100];
+    sprintf(sst_path, "%s/sst", pmemdir);
     int is_pmem;
     size_t sst_mapped_len;
     long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps->psinfo->blocki + ps->psinfo->bucketi*sizeof(unsigned);
@@ -248,32 +249,58 @@ static void sst(struct pass0_state *ps) {
     memset(fp, 0, sst_size);
 
     // cmap
-    pmemkv_db *sst_db = NULL;
-    printf("Creating a new config\n");
-    pmemkv_config *cfg = pmemkv_config_new();
-    ASSERT(cfg != NULL);
+//    pmemkv_db *sst_db = NULL;
+//    printf("Creating a new config\n");
+//    pmemkv_config *cfg = pmemkv_config_new();
+//    ASSERT(cfg != NULL);
+//
+//    int s = pmemkv_config_put_path(cfg, "/mnt/pmem1.0/ansont/sst.db");
+//    ASSERT(s == PMEMKV_STATUS_OK);
+//    s = pmemkv_config_put_size(cfg, 5*GB);
+//    ASSERT(s == PMEMKV_STATUS_OK);
+//    s = pmemkv_config_put_force_create(cfg, true);
+//    ASSERT(s == PMEMKV_STATUS_OK);
+//    printf("Opening sst database\n");
+//    s = pmemkv_open("cmap", cfg, &sst_db);
+//    ASSERT(s == PMEMKV_STATUS_OK);
+//    ASSERT(sst_db != NULL);
 
-    int s = pmemkv_config_put_path(cfg, "/mnt/pmem1.0/ansont/sst.db");
-    ASSERT(s == PMEMKV_STATUS_OK);
-    s = pmemkv_config_put_size(cfg, 5*GB);
-    ASSERT(s == PMEMKV_STATUS_OK);
-    s = pmemkv_config_put_force_create(cfg, true);
-    ASSERT(s == PMEMKV_STATUS_OK);
-    printf("Opening sst database\n");
-    s = pmemkv_open("cmap", cfg, &sst_db);
-    ASSERT(s == PMEMKV_STATUS_OK);
-    ASSERT(sst_db != NULL);
+    DB *w2p_db;
+    char w2p_path[MAXFILENAME];
+    int err = db_create(&w2p_db, NULL, 0);
+    sprintf(w2p_path, "%s/w2p.db", pmemdir);
 
+    if (err) {
+        fprintf(stderr,"failed to create db %s\n", strerror(errno));
+        exit(2);
+    }
+    err = db->open(db, NULL, dbfile, NULL, DB_BTREE, DB_TRUNCATE|DB_CREATE, 0666);
+    if (err) {
+        fprintf(stderr,"failed to open db %s\n", strerror(errno));
+        exit(2);
+    }
 
 
     for (int i = 0; i < ps->psinfo->bucketi; i++) {
         struct Bucket *bu = &ps->buckets[i];
         struct Block *bl = &ps->blocks[bu->b0];
 
-        char val[MAX_VAL_LEN];
-        sprintf(val, "%d", offset);
-        s = pmemkv_put(sst_db, bu->word, strlen(bu->word), val, MAX_VAL_LEN);
-        ASSERT(s == PMEMKV_STATUS_OK);
+//        char val[MAX_VAL_LEN];
+//        sprintf(val, "%d", offset);
+//        s = pmemkv_put(sst_db, bu->word, strlen(bu->word), val, MAX_VAL_LEN);
+//        ASSERT(s == PMEMKV_STATUS_OK);
+
+        DBT key, data;
+        bzero(&key,sizeof(key));
+        bzero(&data,sizeof(data));
+
+        key.data = (void *) bu->word;
+        key.size = strlen(bu->word) + 1;
+        data.data = &offset;
+        data.size = sizeof(offset);
+        if((err = w2p.db->put(w2p.db, NULL, &key, &data, DB_NOOVERWRITE)) != 0){
+            fprintf("mkdb: db->put failed %s\n");
+        }
 
         memcpy(fp+offset, &bu->n, sizeof(bu->n));
         //*(fp+offset) = bu->n;
@@ -301,6 +328,13 @@ static void sst(struct pass0_state *ps) {
     #ifdef TIMER
     end_timer(timer_sst,0);
     #endif
+
+    assert(w2p_db);
+    if(w2p_db->close(w2p->db, 0) != 0){
+        fprintf(stderr, "pedsort: db close failed %s\n", strerror(errno));
+        exit(1);
+    }
+    w2p_db = NULL;
 
     pmem_persist(fp, sst_mapped_len);
     pmem_unmap(sst_path, sst_mapped_len);
