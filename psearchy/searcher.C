@@ -430,7 +430,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
 
 
 
-PostIt* query_term_sst(char *term, char *fp, int *bufferi) {
+PostIt* query_term_sst(char *term, int *bufferi) {
 
     char psinfo_path[100];
     sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
