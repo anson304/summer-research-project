@@ -9,6 +9,7 @@ CMAP_PM += -DN2F_CMAP_PM -DW2B_CMAP_PM -DFLUSH
 TABLE_SST += -DN2F_CMAP_PM -DSST -DFLUSH
 QE_SST_DC += -DSST -DDRAM_CACHE
 QE_PM += -DPM_TABLE
+QE_PM_DC += -DPM_TABLE -DDRAM_CACHE
 QE_CMAP_PM += -DPM_TABLE -DW2B_CMAP_PM
 DRAM_CACHE_PM += -DDRAM_CACHE
 
@@ -42,7 +43,7 @@ qe-table-pm.o: searcher.C
 	g++ -c -o $@ $(QE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 qe-table-pm-dc.o: searcher.C
-	g++ -c -o $@ $(QE_SST_DC) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
+	g++ -c -o $@ $(QE_PM_DC) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 #qe-table-pm-seq.o: qe-table-pm-seq.C
 #	g++ -c -o $@ $(TABLE_PM) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
@@ -57,7 +58,7 @@ qe-table-sst.o: searcher.C
 	g++ -c -o $@ $(TABLE_SST) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 qe-table-sst-dc.o: searcher.C
-	g++ -c -o $@ $(TABLE_SST) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
+	g++ -c -o $@ $(QE_SST_DC) $(CXXFLAGS) $(LDFLAGS) $^ -ldb -lpthread -lpmemkv -lpmem
 
 
 cmap-pm: $(OBJS1)
