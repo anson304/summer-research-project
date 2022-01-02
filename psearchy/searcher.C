@@ -707,6 +707,8 @@ int main(int argc, char *argv[]) {
     open_kv("cmap", w2b_dbname, &w2b_db);
 #endif
 
+    printf("Pmemdir: %s", pmemdir);
+
     printf("Query: %s\n", term);
     int bufferi = 0;
 
