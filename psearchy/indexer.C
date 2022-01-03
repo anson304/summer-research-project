@@ -268,7 +268,7 @@ static void sst(struct pass0_state *ps) {
     DB *w2p_db;
     char w2p_path[MAXFILENAME];
     int err = db_create(&w2p_db, NULL, 0);
-    sprintf(w2p_path, "%s/w2p.db", pmemdir);
+    sprintf(w2p_path, "/dev/shm/w2p.db");
 
     if (err) {
         fprintf(stderr,"failed to create db %s\n", strerror(errno));

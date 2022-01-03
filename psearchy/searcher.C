@@ -463,7 +463,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     DB *w2p_db;
     char w2p_path[MAXFILENAME];
     int err = db_create(&w2p_db, NULL, 0);
-    sprintf(w2p_path, "%s/w2p.db", pmemdir);
+    sprintf(w2p_path, "/dev/shm/w2p.db");
     err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
     if (err) {
         fprintf(stderr, "failed to open %s\n", w2p_path);
@@ -505,15 +505,18 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
     //printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
 
-    PostIt *_in_core = (PostIt *) (fp + offset);
-    for (int i=0; i<docCount; i++) {
-        infop = bufferP + *bufferi;
-        infop->dn = _in_core->dn;
-        infop->wc = _in_core->wc;
-        //printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
-        ++*bufferi;
-        _in_core++;
-    }
+    memcpy(bufferP, fp+offset, sizeof(PostIt)*docCount);
+    *bufferi = docCount;
+
+//    PostIt *_in_core = (PostIt *) (fp + offset);
+//    for (int i=0; i<docCount; i++) {
+//        infop = bufferP + *bufferi;
+//        infop->dn = _in_core->dn;
+//        infop->wc = _in_core->wc;
+//        //printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
+//        ++*bufferi;
+//        _in_core++;
+//    }
 
 
     #ifdef TIMER
@@ -707,7 +710,7 @@ int main(int argc, char *argv[]) {
     open_kv("cmap", w2b_dbname, &w2b_db);
 #endif
 
-    printf("Pmemdir: %s", pmemdir);
+    printf("Pmemdir: %s\n", pmemdir);
 
     printf("Query: %s\n", term);
     int bufferi = 0;
