@@ -52,6 +52,7 @@ pthread_mutex_t input_lock;
 const char *config = "mkdb.config";
 const long long GB = 1024UL*1024UL*1024UL;
 extern int errno;
+int *cpuseq;
 string prefix;
 int ncore = 1;
 long long maxmem = 256*1024*1024;
@@ -205,6 +206,91 @@ initshared(void)
     shared->first = 1;
 }
 
+
+static void get_cpu_sequence(int order, int *seq)
+{
+    if (getenv("CPUSEQ")) {
+        char *cpuseq = strdup(getenv("CPUSEQ"));
+        char *tok, *pos = cpuseq;
+        int n = 0;
+        while ((tok = strsep(&pos, ",")) && n < ncore) {
+            seq[n++] = atoi(tok);
+        }
+        free(cpuseq);
+
+        if (n < ncore) {
+            fprintf(stderr, "Number of cores requested %d > CPUSEQ %d",
+                    ncore, n);
+            exit(-1);
+        }
+        return;
+    }
+
+    // Parse cpuinfo file
+    std::vector<cpuinfo> cpus;
+
+    FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
+    if (cpuinfo == NULL) {
+        perror("failed to open /proc/cpuinfo");
+        exit(-1);
+    }
+
+    char line[1024];
+    struct cpuinfo cur;
+    while (fgets(line, sizeof line, cpuinfo)) {
+        int *val = NULL;
+        if (strncmp(line, "processor\t", 10) == 0)
+            val = &cur.proc;
+        else if (strncmp(line, "physical id\t", 12) == 0)
+            val = &cur.phys;
+        if (val)
+            *val = atoi(strchr(line, ':')+1);
+
+        if (line[0] == '\n')
+            cpus.push_back(cur);
+    }
+
+    fclose(cpuinfo);
+
+    if (ncore > (int)cpus.size()) {
+        fprintf(stderr, "Number of cores requested %d > available cores %d\n",
+                ncore, (int)cpus.size());
+        exit(-1);
+    }
+
+    if (order == 0) {
+        // Sequential
+        for (int i = 0; i < ncore; ++i)
+            seq[i] = cpus.at(i).proc;
+    } else {
+        // Round-robin
+        int maxphys = 0;
+        for (unsigned int i = 0; i < cpus.size(); ++i)
+            if (cpus[i].phys > maxphys)
+                maxphys = cpus[i].phys;
+
+            int i = 0;
+            while (true) {
+                // Take one processor from each physical chip
+                assert(!cpus.empty());
+                std::set<int> phys;
+                std::vector<struct cpuinfo>::iterator it;
+                for (it = cpus.begin(); it != cpus.end();) {
+                    if (!phys.count(it->phys)) {
+                        phys.insert(it->phys);
+                        seq[i++] = it->proc;
+                        if (i == ncore)
+                            return;
+                        it = cpus.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+            }
+    }
+}
+
+
 /*
  * mmap() doesn't like offsets not divisable by the page size.
  */
@@ -231,6 +317,23 @@ xmmap(size_t len, int fd, off_t offset, void *& realp, size_t& reallen)
     reallen = nlen;
     return((char*)p + (offset - noffset));
 }
+
+void set_affinity(int cpu_id) {
+    int tid = gettid();
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    //CPU_SET(((cpu_id<<2)|(cpu_id>>2)) & 15, &mask);
+    CPU_SET(cpu_id, &mask);
+
+    // printf("set_affinity: %d %d\n", tid, cpu_id);
+
+    int r = sched_setaffinity(tid, sizeof(mask), &mask);
+    if (r < 0) {
+        fprintf(stderr, "couldn't set affinity for %d\n", cpu_id);
+        exit(1);
+    }
+}
+
 
 static inline int atomic_add_return(int i, volatile int *n)
 {
@@ -570,7 +673,7 @@ void *doterms(void *arg) {
     //  pthread_mutex_lock(&input_lock);
     while (1) {
         long long d = atomic_add_return(1, &(shared->did));
-        if (shared->did >= max_did)
+        if (shared->did >= max_term)
             break;
 
         printf("cid: %d, Query: %s\n", cid, terms[d]);
@@ -591,6 +694,8 @@ void *doterms(void *arg) {
         }
         printf("cid: %d, bufferi: %d\n", cid, bufferi);
         // pthread_mutex_lock(&input_lock);
+        printf("Query time: ");
+        print_timer(timer_query, cid);
     }
     // pthread_mutex_unlock(&input_lock);
 
@@ -656,7 +761,7 @@ int main(int argc, char *argv[]) {
 
     pthread_mutex_init(&input_lock, NULL);
 
-    while (fgets(terms[term_count], MAXWORDLENGTH, stdin) != NULL) {
+    while (fgets(terms[max_term], MAXWORDLENGTH, stdin) != NULL) {
         assert(strlen(terms[max_term]) < MAXWORDLENGTH);
         assert(terms[max_term][strlen(terms[max_term])-1] == '\n');
         terms[max_term][strlen(terms[max_term])-1] = '\0';
@@ -726,8 +831,6 @@ int main(int argc, char *argv[]) {
 
 #ifdef TIMER
     end_timer(&timer_main,0);
-    printf("Query time: ");
-    print_timer(timer_query, cid);
 //print_uni_timer(&timer_main);
 //print_uni_timer(&timer_alloc_table);
 #endif
