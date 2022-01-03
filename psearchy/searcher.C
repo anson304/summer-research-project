@@ -317,6 +317,11 @@ xmmap(size_t len, int fd, off_t offset, void *& realp, size_t& reallen)
     reallen = nlen;
     return((char*)p + (offset - noffset));
 }
+static pid_t gettid(void)
+{
+    return syscall(__NR_gettid);
+}
+
 
 void set_affinity(int cpu_id) {
     int tid = gettid();
