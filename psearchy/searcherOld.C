@@ -48,18 +48,18 @@ assert(expr);                                                            \
 
 const char *tmpdir;
 const char *pmemdir;
-pthread_mutex_t input_lock;
 const char *config = "mkdb.config";
 const long long GB = 1024UL*1024UL*1024UL;
 extern int errno;
+unsigned maxwordlen;
 string prefix;
 int ncore = 1;
 long long maxmem = 256*1024*1024;
 long long NBYTES = 0;
 long long N2F_DB_SIZE = 0;
 long long OBIN_SIZE = 0;
-long long term_i = 1;
-long long max_term = 1;
+DID did = 1;
+DID max_did = 1;
 int first = 1;
 int order = 0;
 int threaded = 1;
@@ -68,12 +68,9 @@ int dblim = 0;
 pmemkv_db *w2b_db = NULL;
 pmemkv_db *n2f_db = NULL;
 
-#define NTERMS 10000
 #define MAXWORDLENGTH 64 // Anson
 #define BLOCKSIZE 128
 #define MAXFILENAME 200
-
-char terms[NTERMS][MAXWORDLENGTH];
 
 struct Block {
     int next; // next block
@@ -230,15 +227,6 @@ xmmap(size_t len, int fd, off_t offset, void *& realp, size_t& reallen)
     realp = p;
     reallen = nlen;
     return((char*)p + (offset - noffset));
-}
-
-static inline int atomic_add_return(int i, volatile int *n)
-{
-    int __i = i;
-    asm volatile("lock; xaddl %0, %1"
-    : "+r" (i), "+m" (*n)
-    : : "memory");
-    return i + __i;
 }
 
 int lookup(struct pass0_state *ps, char *word) {
@@ -518,7 +506,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     //printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
 
     memcpy(bufferP, fp+offset, sizeof(PostIt)*docCount);
-    *bufferi = sizeof(PostIt)*docCount;
+    *bufferi = docCount;
 
 //    PostIt *_in_core = (PostIt *) (fp + offset);
 //    for (int i=0; i<docCount; i++) {
@@ -559,57 +547,32 @@ int get_kv_callback(const char *k, size_t kb, const char *value, size_t value_by
     return 0;
 }
 
-
-void *doterms(void *arg) {
-    int cid = (long long) arg;
-
-    int c = cpuseq[cid];
-    set_affinity(c);
-    printf("%d assigned to core %d\n", cid, c);
-
-    //  pthread_mutex_lock(&input_lock);
-    while (1) {
-        long long d = atomic_add_return(1, &(shared->did));
-        if (shared->did >= max_did)
-            break;
-
-        printf("cid: %d, Query: %s\n", cid, terms[d]);
-        int bufferi = 0;
-
-        PostIt *bufferResult;
-
-        #ifdef SST
-        bufferResult = query_term_sst(terms[d], &bufferi);
-        #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d], &ps, &bufferi);
-        #else
-        bufferResult = query_term_stock(terms[d], &bufferi);
-        #endif
-
-        if (bufferi > 0) {
-            free (bufferResult);
-        }
-        printf("cid: %d, bufferi: %d\n", cid, bufferi);
-        // pthread_mutex_lock(&input_lock);
-    }
-    // pthread_mutex_unlock(&input_lock);
-
-}
-
 int main(int argc, char *argv[]) {
     char ch;
 
+
     printrusage(1);
+
+    tmpdir = "/tmp";
+
+#ifdef DRAM_CACHE
+    pmemdir = "/mnt/pmem0.0/ansont";
+#else
+    pmemdir = "/mnt/pmem1.0/ansont";
+#endif
+
+    if(getenv("TMPDIR"))
+        tmpdir = getenv("TMPDIR");
 
     update_only = false;
 
-    while ((ch = getopt(argc, argv, "p:c:")) != -1) {
+    char term[MAXWORDLENGTH];
+
+
+    while ((ch = getopt(argc, argv, "q:")) != -1) {
         switch (ch) {
-            case 'p':
-                pmemdir = optarg;
-                break;
-            case 'c':
-                ncore = atoi (optarg);
+            case 'q':
+                strcpy(term, optarg);
                 break;
             default:
                 break;
@@ -623,7 +586,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-
+    if(ncore == 1)
+        OBIN_SIZE = 16 * maxmem;
 
 #ifdef TIMER
     initialize_timer(&timer_main, 0, "main");
@@ -637,10 +601,9 @@ int main(int argc, char *argv[]) {
 #ifdef TIMER
     start_timer(&timer_main,0);
 #endif
-
     Args *a = new Args(config);
-    cpuseq = new int[ncore];
-    get_cpu_sequence(order, cpuseq);
+    maxwordlen = a->nget<unsigned>("maxwordlen", 100);
+    int cid = 0;
 
     // Increase my FD limit as much as possible
     struct rlimit fdlim;
@@ -654,24 +617,13 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    pthread_mutex_init(&input_lock, NULL);
-
-    while (fgets(terms[term_count], MAXWORDLENGTH, stdin) != NULL) {
-        assert(strlen(terms[max_term]) < MAXWORDLENGTH);
-        assert(terms[max_term][strlen(terms[max_term])-1] == '\n');
-        terms[max_term][strlen(terms[max_term])-1] = '\0';
-        max_term++;
-        assert(max_term < NTERMS);
-    }
-
+    struct pass0_state ps;
 
 
 #ifdef PM_TABLE
   #ifdef TIMER
     start_timer(&timer_alloc_table, cid);
   #endif
-
-    struct pass0_state ps;
 
     char psinfo_path[100];
     sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
@@ -686,6 +638,22 @@ int main(int argc, char *argv[]) {
     size_t blocks_mapped_len;
 
     int is_pmem;
+//
+//    if ((ps.psinfo = (struct pass0_state_info *) pmem_map_file(psinfo_path, sizeof(struct pass0_state_info), PMEM_FILE_CREATE, 0666, &psinfo_mapped_len, &is_pmem)) == NULL) {
+//        perror("pmem_map_file");
+//        exit(1);
+//    }
+//
+//    if ((ps.buckets=(struct Bucket *)pmem_map_file(buckets_path, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PMEM_FILE_CREATE, 0666, &buckets_mapped_len, &is_pmem)) == NULL) {
+//        perror("pmem_map_file");
+//        exit(1);
+//    }
+//
+//    if ((ps.blocks=(struct Block *)pmem_map_file(blocks_path, ps.psinfo->maxblocks * sizeof(struct Block), PMEM_FILE_CREATE, 0666, &blocks_mapped_len, &is_pmem)) == NULL) {
+//        perror("pmem_map_file");
+//        exit(1);
+//    }
+//    assert(ps.blocks && ps.buckets);
 
     int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
     int buckets_file = open (buckets_path, O_RDONLY, 0640);
@@ -700,28 +668,66 @@ int main(int argc, char *argv[]) {
   #endif
 #endif
 
+
+
+
+    char *fp;
+
+//#ifdef SST
+//  #ifdef TIMER
+//    start_timer(&timer_alloc_table, cid);
+//  #endif
+//
+//    char psinfo_path[100];
+//    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+//    size_t psinfo_mapped_len;
+//    char sst_path[100];
+//    sprintf(sst_path, "%s/ps/sst", pmemdir);
+//    size_t sst_mapped_len;
+//
+//    int is_pmem;
+//
+//    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
+//    int sst_file = open (sst_path, O_RDONLY, 0640);
+//
+//    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+//
+//    long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps.psinfo->blocki + ps.psinfo->bucketi*sizeof(unsigned);
+//
+//    fp = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+//
+//  #ifdef TIMER
+//    end_timer(&timer_alloc_table, cid);
+//  #endif
+//#endif
+
+
+
+
 #ifdef W2B_CMAP_PM
     char w2b_dbname[100]; // word to bucket db name
     sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
     open_kv("cmap", w2b_dbname, &w2b_db);
 #endif
 
-    fflush(stdout);
-    initshared();
+    printf("Pmemdir: %s\n", pmemdir);
 
-    pthread_t *tha = new pthread_t[ncore];
-    void *value;
-    for(int i = 0; i < ncore; i++)
-        pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
+    printf("Query: %s\n", term);
+    int bufferi = 0;
 
-    for(int i = 0; i < ncore; i++)
-        assert(pthread_join(tha[i], &value) == 0);
-    delete[] tha;
+    PostIt *bufferResult;
 
+#ifdef SST
+    bufferResult = query_term_sst(term, &bufferi);
+#elif PM_TABLE
+    bufferResult = query_term_pm(term, &ps, &bufferi);
+#else
+    bufferResult = query_term_stock(term, &bufferi);
+#endif
 
-
-
-
+    if (bufferi > 0) {
+        free (bufferResult);
+    }
 
 
 #ifdef TIMER
