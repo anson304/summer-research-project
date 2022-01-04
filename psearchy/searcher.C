@@ -864,7 +864,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef TIMER
     end_timer(&timer_main,0);
-//print_uni_timer(&timer_main);
+    print_uni_timer(&timer_main);
 //print_uni_timer(&timer_alloc_table);
 #endif
 
