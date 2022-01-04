@@ -69,7 +69,7 @@ int dblim = 0;
 pmemkv_db *w2b_db = NULL;
 pmemkv_db *n2f_db = NULL;
 
-#define NTERMS 10000
+#define NTERMS 100000
 #define MAXWORDLENGTH 64 // Anson
 #define BLOCKSIZE 128
 #define MAXFILENAME 200
