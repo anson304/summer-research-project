@@ -373,12 +373,11 @@ int lookup(struct pass0_state *ps, char *word) {
     exit(1);
 }
 
-PostIt* query_term_stock(char *term, int *bufferi) {
+PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     PostIt *bufferP;
     char dbname[100];
     char filename[100];
-    int cid = 0;
     DB *w2p_db = NULL;
     FILE *fp;
     int err;
@@ -386,7 +385,7 @@ PostIt* query_term_stock(char *term, int *bufferi) {
     string w = string(term);
 
     #ifdef TIMER
-    start_timer(timer_query, 0);
+    start_timer(timer_query, cid);
     #endif
 
     sprintf(filename, "%s%d/%s-f-%d", "/mnt/nvme-1.0/anson/stock/large/db/db", cid, "ind", cid);
@@ -479,14 +478,14 @@ PostIt* query_term_stock(char *term, int *bufferi) {
     fclose(fp);
 
     #ifdef TIMER
-    end_timer(timer_query, 0);
+    end_timer(timer_query, cid);
     #endif
 
     return bufferP;
 }
 
 
-PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
+PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi, int cid) {
     //printf("New query: %s, len: %d\n", term, strlen(term));
     struct Bucket *bu;
     struct Block *bl;
@@ -496,7 +495,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
     int counter = 0;
 
     #ifdef TIMER
-    start_timer(timer_query, 0);
+    start_timer(timer_query, cid);
     #endif
 
 #ifdef W2B_CMAP_PM
@@ -541,7 +540,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
         }
     }
     #ifdef TIMER
-    end_timer(timer_query, 0);
+    end_timer(timer_query, cid);
     #endif
     //printf("Counter: %d\n", counter);
     return bufferP;
@@ -550,7 +549,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi) {
 
 
 
-PostIt* query_term_sst(char *term, int *bufferi) {
+PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     char psinfo_path[100];
     sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
@@ -603,7 +602,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
     data.size = sizeof(offset);
 
     #ifdef TIMER
-    start_timer(timer_query, 0);
+    start_timer(timer_query, cid);
     #endif
 
     if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
@@ -640,7 +639,7 @@ PostIt* query_term_sst(char *term, int *bufferi) {
 
 
     #ifdef TIMER
-    end_timer(timer_query, 0);
+    end_timer(timer_query, cid);
     #endif
     if (w2p_db)
         w2p_db->close(w2p_db,0);
@@ -687,11 +686,11 @@ void *doterms(void *arg) {
         PostIt *bufferResult;
 
         #ifdef SST
-        bufferResult = query_term_sst(terms[d], &bufferi);
+        bufferResult = query_term_sst(terms[d], &bufferi, cid);
         #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d], &ps, &bufferi);
+        bufferResult = query_term_pm(terms[d], &ps, &bufferi, cid);
         #else
-        bufferResult = query_term_stock(terms[d], &bufferi);
+        bufferResult = query_term_stock(terms[d], &bufferi, cid);
         #endif
 
         if (bufferi > 0) {
