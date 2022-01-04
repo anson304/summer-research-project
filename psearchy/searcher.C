@@ -388,7 +388,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     start_timer(timer_query, cid);
     #endif
 
-    sprintf(filename, "%s%d/%s-f-%d", "/mnt/nvme-1.0/anson/stock/large/db/db", cid, "ind", cid);
+    sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
     fp = fopen(filename,"r");
 
     if (!fp) {
@@ -397,7 +397,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         exit(1);
     }
 
-    sprintf(dbname, "%s%d/%s-w2p.db-%d", "/mnt/nvme-1.0/anson/stock/large/db/db", cid, "ind", cid);
+    sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
     err = db_create(&w2p_db, NULL, 0);
     assert(!err);
     err = w2p_db->open(w2p_db, NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
@@ -714,7 +714,7 @@ void *doterms(void *arg) {
         if (shared->did >= max_term)
             break;
 
-        printf("cid: %d, Query: %s\n", cid, terms[d]);
+        //printf("cid: %d, Query: %s\n", cid, terms[d]);
         int bufferi = 0;
 
         PostIt *bufferResult;
@@ -730,7 +730,7 @@ void *doterms(void *arg) {
         if (bufferi > 0) {
             free (bufferResult);
         }
-        printf("cid: %d, bufferi: %d\n", cid, bufferi);
+        //printf("cid: %d, bufferi: %d\n", cid, bufferi);
         // pthread_mutex_lock(&input_lock);
         printf("Query time: ");
         print_timer(timer_query, cid);
