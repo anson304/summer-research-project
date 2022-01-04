@@ -794,6 +794,9 @@ int main(int argc, char *argv[]) {
         assert(strlen(terms[max_term]) < MAXWORDLENGTH);
         assert(terms[max_term][strlen(terms[max_term])-1] == '\n');
         terms[max_term][strlen(terms[max_term])-1] = '\0';
+        for (int i=0; i < strlen(terms[max_term]); i++) {
+            terms[max_term][i] = tolower(terms[max_term][i]);
+        }
         max_term++;
         assert(max_term < NTERMS);
     }
