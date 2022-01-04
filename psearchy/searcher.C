@@ -485,8 +485,33 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 }
 
 
-PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi, int cid) {
+PostIt* query_term_pm(char *term, int *bufferi, int cid) {
     //printf("New query: %s, len: %d\n", term, strlen(term));
+
+    struct pass0_state ps;
+
+    char psinfo_path[100];
+    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+    size_t psinfo_mapped_len;
+
+    char buckets_path[100];
+    sprintf(buckets_path, "%s/ps/buckets", pmemdir);
+    size_t buckets_mapped_len;
+
+    char blocks_path[100];
+    sprintf(blocks_path, "%s/ps/blocks", pmemdir);
+    size_t blocks_mapped_len;
+
+    int is_pmem;
+
+    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
+    int buckets_file = open (buckets_path, O_RDONLY, 0640);
+    int blocks_file = open (blocks_path, O_RDONLY, 0640);
+
+    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+    ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_SHARED, buckets_file, 0);
+    ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
+
     struct Bucket *bu;
     struct Block *bl;
     PostIt *bufferP;
@@ -506,7 +531,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi, int cid)
         s = pmemkv_get_copy(w2b_db, term, strlen(term), val, MAX_VAL_LEN, NULL);
         ASSERT(s == PMEMKV_STATUS_OK);
         //printf("index:%s\n", val);
-        bu = &ps->buckets[atoi(val)];
+        bu = &ps.buckets[atoi(val)];
     } else if (s == PMEMKV_STATUS_NOT_FOUND) {
         printf("word not found in cmap\n");
     } else {
@@ -515,13 +540,13 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi, int cid)
     }
 
 #else
-    bu = &ps->buckets[lookup(ps, term)];
+    bu = &ps.buckets[lookup(&ps, term)];
 #endif
     bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
     if(bu->used == 0){
         printf("word not found\n");
     } else {
-        bl = &ps->blocks[bu->b0];
+        bl = &ps.blocks[bu->b0];
         bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
         //printf("Allocated buffer for %d postings\n", bu->n);
 
@@ -533,7 +558,7 @@ PostIt* query_term_pm(char *term, struct pass0_state *ps, int *bufferi, int cid)
                 ++*bufferi;
             }
             if (bl->next != 0) {
-                bl = &ps->blocks[bl->next];
+                bl = &ps.blocks[bl->next];
             } else {
                 break;
             }
@@ -688,7 +713,7 @@ void *doterms(void *arg) {
         #ifdef SST
         bufferResult = query_term_sst(terms[d], &bufferi, cid);
         #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d], &ps, &bufferi, cid);
+        bufferResult = query_term_pm(terms[d], &bufferi, cid);
         #else
         bufferResult = query_term_stock(terms[d], &bufferi, cid);
         #endif
@@ -775,39 +800,39 @@ int main(int argc, char *argv[]) {
 
 
 
-#ifdef PM_TABLE
-  #ifdef TIMER
-    start_timer(&timer_alloc_table, cid);
-  #endif
-
-    struct pass0_state ps;
-
-    char psinfo_path[100];
-    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
-    size_t psinfo_mapped_len;
-
-    char buckets_path[100];
-    sprintf(buckets_path, "%s/ps/buckets", pmemdir);
-    size_t buckets_mapped_len;
-
-    char blocks_path[100];
-    sprintf(blocks_path, "%s/ps/blocks", pmemdir);
-    size_t blocks_mapped_len;
-
-    int is_pmem;
-
-    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
-    int buckets_file = open (buckets_path, O_RDONLY, 0640);
-    int blocks_file = open (blocks_path, O_RDONLY, 0640);
-
-    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
-    ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_SHARED, buckets_file, 0);
-    ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
-
-  #ifdef TIMER
-    end_timer(&timer_alloc_table, cid);
-  #endif
-#endif
+//#ifdef PM_TABLE
+//  #ifdef TIMER
+//    start_timer(&timer_alloc_table, cid);
+//  #endif
+//
+//    struct pass0_state ps;
+//
+//    char psinfo_path[100];
+//    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+//    size_t psinfo_mapped_len;
+//
+//    char buckets_path[100];
+//    sprintf(buckets_path, "%s/ps/buckets", pmemdir);
+//    size_t buckets_mapped_len;
+//
+//    char blocks_path[100];
+//    sprintf(blocks_path, "%s/ps/blocks", pmemdir);
+//    size_t blocks_mapped_len;
+//
+//    int is_pmem;
+//
+//    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
+//    int buckets_file = open (buckets_path, O_RDONLY, 0640);
+//    int blocks_file = open (blocks_path, O_RDONLY, 0640);
+//
+//    ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+//    ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_SHARED, buckets_file, 0);
+//    ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
+//
+//  #ifdef TIMER
+//    end_timer(&timer_alloc_table, cid);
+//  #endif
+//#endif
 
 #ifdef W2B_CMAP_PM
     char w2b_dbname[100]; // word to bucket db name
