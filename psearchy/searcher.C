@@ -669,6 +669,9 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     if (w2p_db)
         w2p_db->close(w2p_db,0);
 
+    munmap(psinfo, sizeof(struct pass0_state_info));
+    munmap(fp, sst_size);
+
     //printf("Counter: %d\n", counter);
     return bufferP;
 }
