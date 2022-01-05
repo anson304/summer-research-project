@@ -175,6 +175,7 @@ struct pass0_state_info {
 struct pass0_state ps;
 char *fp_sst;
 DB *w2p_db;
+FILE *fp_stock;
 
 bool update_only;
 
@@ -383,11 +384,7 @@ int lookup(struct pass0_state *ps, char *word) {
 PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     PostIt *bufferP;
-    char dbname[100];
-    char filename[100];
-    DB *w2p_db = NULL;
-    FILE *fp;
-    int err;
+
 
     string w = string(term);
 
@@ -395,23 +392,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     start_timer(timer_query, cid);
     #endif
 
-    sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
-    fp = fopen(filename,"r");
 
-    if (!fp) {
-        fprintf(stderr, "error opening %s\n", filename);
-        perror("qe.C: open ");
-        exit(1);
-    }
-
-    sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
-    err = db_create(&w2p_db, NULL, 0);
-    assert(!err);
-    err = w2p_db->open(w2p_db, NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
-    if (err) {
-        fprintf(stderr, "failed to open %s\n", dbname);
-        exit(1);
-    }
 
     ind_offset offset;
     DBT key, data;
@@ -438,17 +419,17 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         memcpy(&offset,data.data,sizeof(offset));
     }
 
-    if (fseeko(fp,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
+    if (fseeko(fp_stock,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
         fprintf(stderr,"seek error\n");
 //        _max = _in_core_p = 0;
         return bufferP;
     }
 
     char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
-    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp);
+    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp_stock);
     if ((r!= (w.size()+1+sizeof(_max))) || (strcmp(w.c_str(),wordbuf)!=0)) {
         fprintf(stderr,"read error! read %d char (%s) opposed to %s\
-        end of file? %u\n", r, wordbuf,w.c_str(),feof(fp)?1:0);
+        end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock)?1:0);
         //_max = _in_core_p = 0;
         return bufferP;
     }
@@ -462,7 +443,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     bufferP = (PostIt *)malloc(sizeof(PostIt)*_max);
     //printf("Allocated buffer for %d postings\n",_max);
 
-    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
     PostIt *infop;
 
     if (_max > BLOCKSIZE) {
@@ -479,10 +460,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         _in_core++;
     }
 
-    if (w2p_db)
-        w2p_db->close(w2p_db,0);
 
-    fclose(fp);
 
     #ifdef TIMER
     end_timer(timer_query, cid);
@@ -814,6 +792,27 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
     #else
+        char dbname[100];
+        char filename[100];
+        int err;
+
+        sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
+        fp_stock = fopen(filename,"r");
+
+        if (!fp_stock) {
+            fprintf(stderr, "error opening %s\n", filename);
+            perror("qe.C: open ");
+            exit(1);
+        }
+
+        sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
+        err = db_create(&w2p_db, NULL, 0);
+        assert(!err);
+        err = w2p_db->open(w2p_db, NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
+        if (err) {
+            fprintf(stderr, "failed to open %s\n", dbname);
+            exit(1);
+        }
 
     #endif
 #ifdef TIMER
@@ -856,6 +855,10 @@ int main(int argc, char *argv[]) {
     munmap(fp_sst, sst_size);
 
 #else
+    if (w2p_db)
+        w2p_db->close(w2p_db,0);
+
+    fclose(fp_stock);
 
 #endif
 
