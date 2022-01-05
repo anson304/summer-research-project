@@ -149,6 +149,10 @@ static void print_timer(struct timer *t, int cid) {
     printf("%.6f\n", t[cid].agg);
 }
 
+static double get_timer(struct timer *t, int cid) {
+    return t[cid].agg;
+}
+
 struct timer timer_main;
 struct timer timer_alloc_table;
 struct timer *timer_query;
@@ -892,7 +896,14 @@ int main(int argc, char *argv[]) {
     print_uni_timer(&timer_main);
     print_uni_timer(&timer_alloc_table);
     printf("doterms: %.6f\n", get_uni_timer(timer_query)/repeats);
-    printf("sync: %.6f\n", get_uni_timer(timer_sync)/repeats);
+
+    double syncTime = 0;
+
+    for (int i=0; i<ncore; i++) {
+        syncTime += get_timer(timer_sync,i);
+    }
+    syncTime = syncTime/repeats;
+    printf("sync: %.6f\n", syncTime);
 #endif
 
 exit(0);
