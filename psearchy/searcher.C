@@ -546,9 +546,6 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
     end_timer(timer_query, cid);
     #endif
 
-    munmap(ps.buckets, sizeof(struct Bucket) * ps.psinfo->maxbuckets);
-    munmap(ps.blocks, sizeof(struct Block) * ps.psinfo->maxblocks);
-    munmap(ps.psinfo, sizeof(struct pass0_state_info));
 
 
     //printf("Counter: %d\n", counter);
@@ -824,8 +821,11 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef W2B_CMAP_PM
-    LOG("Closing n2f database\n"); pmemkv_close(w2b_db);
+    char w2b_dbname[100]; // word to bucket db name
+    sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
+    open_kv("cmap", w2b_dbname, &w2b_db);
 #endif
+
 
     fflush(stdout);
     initshared();
@@ -841,11 +841,18 @@ int main(int argc, char *argv[]) {
 
 
 #ifdef W2B_CMAP_PM
-    char w2b_dbname[100]; // word to bucket db name
-    sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
-    open_kv("cmap", w2b_dbname, &w2b_db);
+    LOG("Closing n2f database\n"); pmemkv_close(w2b_db);
 #endif
 
+#ifdef PM_TABLE
+    munmap(ps.buckets, sizeof(struct Bucket) * ps.psinfo->maxbuckets);
+    munmap(ps.blocks, sizeof(struct Block) * ps.psinfo->maxblocks);
+    munmap(ps.psinfo, sizeof(struct pass0_state_info));
+#elif SST
+
+#else
+
+#endif
 
 
 
