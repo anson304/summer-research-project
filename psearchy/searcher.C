@@ -141,7 +141,7 @@ static void print_uni_timer(struct timer *t) {
     printf("%s took %.6f secs\n", t->name, t->agg);
 }
 
-double void get_uni_timer(struct timer *t) {
+double get_uni_timer(struct timer *t) {
     return t->agg;
 }
 
@@ -709,12 +709,11 @@ int main(int argc, char *argv[]) {
     initialize_timer(&timer_main, 0, "main");
     initialize_timer(&timer_alloc_table, 0, "alloc_table");
     initialize_timer(&timer_doterms, 0, "doterms");
-    initialize_timer(&timer_sync, 0, "sync");
     timer_sync = (struct timer*) malloc(ncore * sizeof(struct timer));
     timer_query = (struct timer*) malloc(ncore * sizeof(struct timer));
     for(int core=0; core<ncore; core++) {
         initialize_timer(timer_query, core, "query");
-        initialize_timer(timer_query, core, "sync");
+        initialize_timer(timer_sync, core, "sync");
     }
 
 #endif
