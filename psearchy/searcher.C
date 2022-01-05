@@ -829,14 +829,14 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     initshared();
 
-    pthread_t *tha = new pthread_t[ncore];
-    void *value;
-    for(int i = 0; i < ncore; i++)
-        pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
-
-    for(int i = 0; i < ncore; i++)
-        assert(pthread_join(tha[i], &value) == 0);
-    delete[] tha;
+//    pthread_t *tha = new pthread_t[ncore];
+//    void *value;
+//    for(int i = 0; i < ncore; i++)
+//        pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
+//
+//    for(int i = 0; i < ncore; i++)
+//        assert(pthread_join(tha[i], &value) == 0);
+//    delete[] tha;
 
 
 #ifdef W2B_CMAP_PM
