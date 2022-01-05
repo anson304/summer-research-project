@@ -174,6 +174,7 @@ struct pass0_state_info {
 
 struct pass0_state ps;
 char *fp_sst;
+DB *w2p_db;
 
 bool update_only;
 
@@ -561,40 +562,6 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
 
 PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
-    char psinfo_path[100];
-    sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
-    size_t psinfo_mapped_len;
-    char sst_path[100];
-    sprintf(sst_path, "%s/sst", pmemdir);
-    size_t sst_mapped_len;
-
-    int is_pmem;
-
-    int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
-    int sst_file = open (sst_path, O_RDONLY, 0640);
-
-    pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
-    long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
-    fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
-
-    //printf("New query: %s, len: %d\n", term, strlen(term));
-    struct Bucket *bu;
-    struct Block *bl;
-    PostIt *bufferP;
-    PostIt *infop;
-    int MAX_VAL_LEN = 64;
-    int counter = 0;
-
-    DB *w2p_db;
-    char w2p_path[MAXFILENAME];
-    int err = db_create(&w2p_db, NULL, 0);
-    sprintf(w2p_path, "/dev/shm/w2p.db");
-    err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
-    if (err) {
-        fprintf(stderr, "failed to open %s\n", w2p_path);
-        exit(1);
-    }
-
 
     string w = string(term);
 
@@ -647,11 +614,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     #ifdef TIMER
     end_timer(timer_query, cid);
     #endif
-    if (w2p_db)
-        w2p_db->close(w2p_db,0);
 
-    munmap(psinfo, sizeof(struct pass0_state_info));
-    munmap(fp_sst, sst_size);
 
     //printf("Counter: %d\n", counter);
     return bufferP;
@@ -816,7 +779,38 @@ int main(int argc, char *argv[]) {
         ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_SHARED, buckets_file, 0);
         ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
     #elif SST
+        char psinfo_path[100];
+        sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+        size_t psinfo_mapped_len;
+        char sst_path[100];
+        sprintf(sst_path, "%s/sst", pmemdir);
+        size_t sst_mapped_len;
 
+        int is_pmem;
+
+        int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
+        int sst_file = open (sst_path, O_RDONLY, 0640);
+
+        pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+        long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
+        fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+
+        //printf("New query: %s, len: %d\n", term, strlen(term));
+        struct Bucket *bu;
+        struct Block *bl;
+        PostIt *bufferP;
+        PostIt *infop;
+        int MAX_VAL_LEN = 64;
+        int counter = 0;
+
+        char w2p_path[MAXFILENAME];
+        int err = db_create(&w2p_db, NULL, 0);
+        sprintf(w2p_path, "/dev/shm/w2p.db");
+        err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
+        if (err) {
+            fprintf(stderr, "failed to open %s\n", w2p_path);
+            exit(1);
+        }
     #else
 
     #endif
@@ -853,6 +847,11 @@ int main(int argc, char *argv[]) {
     munmap(ps.blocks, sizeof(struct Block) * ps.psinfo->maxblocks);
     munmap(ps.psinfo, sizeof(struct pass0_state_info));
 #elif SST
+    if (w2p_db)
+        w2p_db->close(w2p_db,0);
+
+    munmap(psinfo, sizeof(struct pass0_state_info));
+    munmap(fp_sst, sst_size);
 
 #else
 
