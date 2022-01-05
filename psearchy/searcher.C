@@ -646,8 +646,8 @@ void *doterms(void *arg) {
         }
         //printf("cid: %d, bufferi: %d\n", cid, bufferi);
         // pthread_mutex_lock(&input_lock);
-        printf("Query time: ");
-        print_timer(timer_query, cid);
+        //printf("Query time: ");
+        //print_timer(timer_query, cid);
         reset_Timer(timer_query, cid);
     }
     // pthread_mutex_unlock(&input_lock);
