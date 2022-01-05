@@ -97,8 +97,7 @@ struct timer {
     double agg;
 };
 
-struct pass0_state ps;
-char *fp_sst;
+
 
 inline static uint64_t rdtsc()
 {
@@ -172,6 +171,9 @@ struct pass0_state_info {
 
 };
 
+
+struct pass0_state ps;
+char *fp_sst;
 
 bool update_only;
 
