@@ -75,8 +75,7 @@ pmemkv_db *n2f_db = NULL;
 #define MAXFILENAME 200
 
 char terms[NTERMS][MAXWORDLENGTH];
-struct pass0_state ps;
-char *fp_sst;
+
 
 struct Block {
     int next; // next block
@@ -97,6 +96,9 @@ struct timer {
     double start;
     double agg;
 };
+
+struct pass0_state ps;
+char *fp_sst;
 
 inline static uint64_t rdtsc()
 {
@@ -571,7 +573,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
     long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
-    char fp = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+    fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
     //printf("New query: %s, len: %d\n", term, strlen(term));
     struct Bucket *bu;
@@ -618,7 +620,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     unsigned docCount;
     //printf("docCount:%u\n", docCount);
-    memcpy(&docCount, fp+offset, sizeof(docCount));
+    memcpy(&docCount, fp_sst+offset, sizeof(docCount));
 
     //printf("docCount:%u\n", docCount);
     offset += sizeof (unsigned);
@@ -626,7 +628,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
     //printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
 
-    memcpy(bufferP, fp+offset, sizeof(PostIt)*docCount);
+    memcpy(bufferP, fp_sst+offset, sizeof(PostIt)*docCount);
     *bufferi = sizeof(PostIt)*docCount;
 
 //    PostIt *_in_core = (PostIt *) (fp + offset);
@@ -647,7 +649,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
         w2p_db->close(w2p_db,0);
 
     munmap(psinfo, sizeof(struct pass0_state_info));
-    munmap(fp, sst_size);
+    munmap(fp_sst, sst_size);
 
     //printf("Counter: %d\n", counter);
     return bufferP;
@@ -786,7 +788,7 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef TIMER
-    start_timer(&timer_alloc_table, cid);
+    start_timer(&timer_alloc_table, 0);
 #endif
 
     #ifdef PM_TABLE
@@ -817,7 +819,7 @@ int main(int argc, char *argv[]) {
 
     #endif
 #ifdef TIMER
-    end_timer(&timer_alloc_table, cid);
+    end_timer(&timer_alloc_table, 0);
 #endif
 
 #ifdef W2B_CMAP_PM
