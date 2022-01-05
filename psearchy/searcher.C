@@ -75,10 +75,8 @@ pmemkv_db *n2f_db = NULL;
 #define MAXFILENAME 200
 
 char terms[NTERMS][MAXWORDLENGTH];
-struct pass0_state ps;
-char *fp_sst;
-DB *w2p_db = NULL;
-FILE *fp;
+
+
 
 struct Block {
     int next; // next block
@@ -171,6 +169,11 @@ struct pass0_state_info {
     long long doci;
 
 };
+
+struct pass0_state ps;
+char *fp_sst;
+DB *w2p_db = NULL;
+FILE *fp;
 
 
 bool update_only;
