@@ -727,7 +727,7 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef TIMER
-    start_timer(&timer_alloc_table, cid);
+    start_timer(&timer_alloc_table, 0);
 #endif
 
     #ifdef PM_TABLE
@@ -767,7 +767,7 @@ int main(int argc, char *argv[]) {
 
         pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
         long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
-        char fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+        fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
         char w2p_path[MAXFILENAME];
         int err = db_create(&w2p_db, NULL, 0);
@@ -803,7 +803,7 @@ int main(int argc, char *argv[]) {
 
     #endif
 #ifdef TIMER
-    end_timer(&timer_alloc_table, cid);
+    end_timer(&timer_alloc_table, 0);
 #endif
 
 #ifdef W2B_CMAP_PM
