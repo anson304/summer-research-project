@@ -65,6 +65,7 @@ int first = 1;
 int order = 0;
 int threaded = 1;
 int dblim = 0;
+int repeats = 5;
 
 pmemkv_db *w2b_db = NULL;
 pmemkv_db *n2f_db = NULL;
@@ -137,7 +138,11 @@ static void end_timer(struct timer *t, int cid) {
 }
 
 static void print_uni_timer(struct timer *t) {
-    printf("%s took %.2f secs\n", t->name, t->agg);
+    printf("%s took %.6f secs\n", t->name, t->agg);
+}
+
+double void get_uni_timer(struct timer *t) {
+    return t->agg;
 }
 
 static void print_timer(struct timer *t, int cid) {
@@ -147,6 +152,8 @@ static void print_timer(struct timer *t, int cid) {
 struct timer timer_main;
 struct timer timer_alloc_table;
 struct timer *timer_query;
+struct timer timer_doterms;
+struct timer *timer_sync;
 
 
 struct pass0_state {
@@ -634,10 +641,15 @@ void *doterms(void *arg) {
 
     //  pthread_mutex_lock(&input_lock);
     while (1) {
+        #ifdef TIMER
+            start_timer(timer_sync, cid);
+        #endif
         long long d = atomic_add_return(1, &(shared->did));
         if (shared->did >= max_term)
             break;
-
+        #ifdef TIMER
+            end_timer(timer_sync, cid);
+        #endif
         //printf("cid: %d, Query: %s\n", cid, terms[d]);
         int bufferi = 0;
 
@@ -656,8 +668,8 @@ void *doterms(void *arg) {
         }
         //printf("cid: %d, bufferi: %d\n", cid, bufferi);
         // pthread_mutex_lock(&input_lock);
-        printf("Query time: ");
-        print_timer(timer_query, cid);
+//        printf("Query time: ");
+//        print_timer(timer_query, cid);
         reset_Timer(timer_query, cid);
     }
     // pthread_mutex_unlock(&input_lock);
@@ -696,18 +708,20 @@ int main(int argc, char *argv[]) {
 #ifdef TIMER
     initialize_timer(&timer_main, 0, "main");
     initialize_timer(&timer_alloc_table, 0, "alloc_table");
+    initialize_timer(&timer_doterms, 0, "doterms");
+    initialize_timer(&timer_sync, 0, "sync");
+    timer_sync = (struct timer*) malloc(ncore * sizeof(struct timer));
     timer_query = (struct timer*) malloc(ncore * sizeof(struct timer));
     for(int core=0; core<ncore; core++) {
         initialize_timer(timer_query, core, "query");
+        initialize_timer(timer_query, core, "sync");
     }
+
 #endif
 
 #ifdef TIMER
     start_timer(&timer_main,0);
 #endif
-
-
-
 
     Args *a = new Args(config);
     cpuseq = new int[ncore];
@@ -831,12 +845,22 @@ int main(int argc, char *argv[]) {
 
     pthread_t *tha = new pthread_t[ncore];
     void *value;
-    for(int i = 0; i < ncore; i++)
-        pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
+    #ifdef TIMER
+        start_timer(&timer_doterms,0);
+    #endif
+        for (int r = 0; r < repeats; r++) { // 5 repeats
+        shared->did = 1;
 
-    for(int i = 0; i < ncore; i++)
-        assert(pthread_join(tha[i], &value) == 0);
-    delete[] tha;
+        for(int i = 0; i < ncore; i++)
+            pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
+
+        for(int i = 0; i < ncore; i++)
+            assert(pthread_join(tha[i], &value) == 0);
+        delete[] tha;
+    }
+    #ifdef TIMER
+        end_timer(&timer_doterms,0);
+    #endif
 
 
 #ifdef W2B_CMAP_PM
@@ -867,7 +891,9 @@ int main(int argc, char *argv[]) {
 #ifdef TIMER
     end_timer(&timer_main,0);
     print_uni_timer(&timer_main);
-//print_uni_timer(&timer_alloc_table);
+    print_uni_timer(&timer_alloc_table);
+    printf("doterms: %d\n", get_uni_timer(timer_query)/repeats);
+    printf("sync: %d\n", get_uni_timer(timer_sync)/repeats);
 #endif
 
 exit(0);
