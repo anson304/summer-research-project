@@ -574,6 +574,14 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     data.data = &offset;
     data.size = sizeof(offset);
 
+    //printf("New query: %s, len: %d\n", term, strlen(term));
+    struct Bucket *bu;
+    struct Block *bl;
+    PostIt *bufferP;
+    PostIt *infop;
+    int MAX_VAL_LEN = 64;
+    int counter = 0;
+
     #ifdef TIMER
     start_timer(timer_query, cid);
     #endif
@@ -795,13 +803,7 @@ int main(int argc, char *argv[]) {
         long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
         fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
-        //printf("New query: %s, len: %d\n", term, strlen(term));
-        struct Bucket *bu;
-        struct Block *bl;
-        PostIt *bufferP;
-        PostIt *infop;
-        int MAX_VAL_LEN = 64;
-        int counter = 0;
+
 
         char w2p_path[MAXFILENAME];
         int err = db_create(&w2p_db, NULL, 0);
