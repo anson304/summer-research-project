@@ -557,14 +557,13 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     string w = string(term);
 
-    unsigned long long offset;
+    unsigned long long offset = malloc(sizeof(unsigned long long));
     DBT key, data;
-    key.flags = DB_DBT_MALLOC;
-    data.flags = DB_DBT_MALLOC;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
     key.size = w.size() + 1;
+    data.flags = DB_DBT_MALLOC;
     data.data = &offset;
     data.size = sizeof(offset);
 
