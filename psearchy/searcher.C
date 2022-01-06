@@ -84,7 +84,7 @@ typedef struct {
     u_int32_t dlen;
     u_int32_t doff;
     u_int32_t flags = DB_DBT_MALLOC;
-} DBT;
+} DBT_t;
 
 struct Block {
     int next; // next block
@@ -416,7 +416,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
 
     ind_offset offset;
-    DBT key, data;
+    DBT_t key, data;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
@@ -565,7 +565,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     string w = string(term);
 
     unsigned long long offset;
-    DBT key, data;
+    DBT_t key, data;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
