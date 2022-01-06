@@ -424,7 +424,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0)
         || (data.size != sizeof(offset))) {
 //            _max = _in_core_p = 0;
-            printf("no such word found in database\n");
+            //printf("no such word found in database\n");
             return bufferP;
         }
         memcpy(&offset,data.data,sizeof(offset));
@@ -641,7 +641,7 @@ void *doterms(void *arg) {
 
     int c = cpuseq[cid];
     set_affinity(c);
-    printf("%d assigned to core %d\n", cid, c);
+    //printf("%d assigned to core %d\n", cid, c);
 
     //  pthread_mutex_lock(&input_lock);
     while (1) {
@@ -846,21 +846,21 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     initshared();
 
-    pthread_t *tha = new pthread_t[ncore];
-    void *value;
     #ifdef TIMER
         start_timer(&timer_doterms,0);
     #endif
         for (int r = 0; r < repeats; r++) { // 5 repeats
-        shared->did = 1;
+            pthread_t *tha = new pthread_t[ncore];
+            void *value;
+            shared->did = 1;
 
-        for(int i = 0; i < ncore; i++)
-            pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
+            for(int i = 0; i < ncore; i++)
+                pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
 
-        for(int i = 0; i < ncore; i++)
-            assert(pthread_join(tha[i], &value) == 0);
-        delete[] tha;
-    }
+            for(int i = 0; i < ncore; i++)
+                assert(pthread_join(tha[i], &value) == 0);
+            delete[] tha;
+        }
     #ifdef TIMER
         end_timer(&timer_doterms,0);
     #endif
