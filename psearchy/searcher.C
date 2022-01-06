@@ -408,13 +408,12 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     ind_offset offset;
     DBT key, data;
-
-
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
     key.size = w.size() + 1;
-    data.data = &offset;
+    data.flags = DB_DBT_MALLOC;
+    data.data = malloc(sizeof offset);
     data.size = sizeof(offset);
     size_t _in_core_p_sz;
     void *_in_core_p_real;
