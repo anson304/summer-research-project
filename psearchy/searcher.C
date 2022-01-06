@@ -575,7 +575,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     start_timer(timer_query, cid);
     #endif
 
-    if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+    if ((w2p_db->get(w2p_db, NULL, &key, &data, DB_DBT_MALLOC) != 0) || (data.size != sizeof(offset))) {
         //printf("no such word found in database: %s", term);
         return NULL;
     }
