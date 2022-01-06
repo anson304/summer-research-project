@@ -400,12 +400,6 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     string w = string(term);
 
-    #ifdef TIMER
-    start_timer(timer_query, cid);
-    #endif
-
-
-
     ind_offset offset;
     DBT key, data;
     bzero(&key,sizeof(key));
@@ -415,28 +409,31 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     data.flags = DB_DBT_MALLOC;
     data.data = malloc(sizeof offset);
     data.size = sizeof(offset);
+
     size_t _in_core_p_sz;
     void *_in_core_p_real;
     unsigned _max = 0;
 
     char *_incore_vec = NULL;
+    #ifdef TIMER
+    start_timer(timer_query, cid);
+    #endif
 
     //printf("Get offset\n");
-    if (w2p_db) {
-        if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0)
-        || (data.size != sizeof(offset))) {
+//    if (w2p_db) {
+    if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
 //            _max = _in_core_p = 0;
-            //printf("no such word found in database\n");
-            return bufferP;
-        }
-        memcpy(&offset,data.data,sizeof(offset));
+        //printf("no such word found in database\n");
+        return NULL;
     }
+    memcpy(&offset,data.data,sizeof(offset));
+//    }
     free(data.data);
 
     if (fseeko(fp_stock,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
         fprintf(stderr,"seek error\n");
 //        _max = _in_core_p = 0;
-        return bufferP;
+        return NULL;
     }
 
     char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
@@ -457,24 +454,23 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     bufferP = (PostIt *)malloc(sizeof(PostIt)*_max);
     //printf("Allocated buffer for %d postings\n",_max);
 
-    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
-    PostIt *infop;
+//    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+//    PostIt *infop;
+    bufferP = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 
-    if (_max > BLOCKSIZE) {
-        _max = BLOCKSIZE;
-    }
-    for (int i=0; i < _max; i++) {
-        infop = bufferP + *bufferi;
-        infop->dn = _in_core->dn;
-        infop->wc = _in_core->wc;
-        ++*bufferi;
-        //printf("PostIt,docid:%d,wc:%d\n", _in_core->dn, _in_core->wc);
-        //*bufferi += sprintf(bufferP + *bufferi,"DID:%d,WC:%d,",_in_core->dn, _in_core->wc);
-        //*bufferi += sprintf(bufferP + *bufferi,"%d,%d\n",_in_core->dn, _in_core->wc);
-        _in_core++;
-    }
-
-
+//    if (_max > BLOCKSIZE) {
+//        _max = BLOCKSIZE;
+//    }
+//    for (int i=0; i < _max; i++) {
+//        infop = bufferP + *bufferi;
+//        infop->dn = _in_core->dn;
+//        infop->wc = _in_core->wc;
+//        ++*bufferi;
+//        //printf("PostIt,docid:%d,wc:%d\n", _in_core->dn, _in_core->wc);
+//        //*bufferi += sprintf(bufferP + *bufferi,"DID:%d,WC:%d,",_in_core->dn, _in_core->wc);
+//        //*bufferi += sprintf(bufferP + *bufferi,"%d,%d\n",_in_core->dn, _in_core->wc);
+//        _in_core++;
+//    }
 
     #ifdef TIMER
     end_timer(timer_query, cid);
