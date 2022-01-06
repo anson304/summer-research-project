@@ -803,7 +803,7 @@ int main(int argc, char *argv[]) {
         char w2p_path[MAXFILENAME];
         int err = db_create(&w2p_db, NULL, 0);
         sprintf(w2p_path, "/dev/shm/w2p.db");
-        err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
+        err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_THREAD,  0666);
         if (err) {
             fprintf(stderr, "failed to open %s\n", w2p_path);
             exit(1);
