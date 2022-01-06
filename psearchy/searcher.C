@@ -431,6 +431,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         }
         memcpy(&offset,data.data,sizeof(offset));
     }
+    free(data.data);
 
     if (fseeko(fp_stock,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
         fprintf(stderr,"seek error\n");
@@ -583,6 +584,8 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
         return NULL;
     }
     memcpy(&offset,data.data,sizeof(offset));
+
+    free(data.data);
     //printf("offset:%d\n", offset);
 
     //printf("fp:%d\n", fp);
@@ -828,7 +831,7 @@ int main(int argc, char *argv[]) {
         sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
         err = db_create(&w2p_db, NULL, 0);
         assert(!err);
-        err = w2p_db->open(w2p_db, NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
+        err = w2p_db->open(w2p_db, NULL, dbname, NULL, DB_BTREE, DB_THREAD,  0666);
         if (err) {
             fprintf(stderr, "failed to open %s\n", dbname);
             exit(1);
