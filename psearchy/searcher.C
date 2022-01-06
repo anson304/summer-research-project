@@ -564,7 +564,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     key.data = (void *)w.c_str();
     key.size = w.size() + 1;
     data.flags = DB_DBT_MALLOC;
-    data.data = offset;
+    data.data = &offset;
     data.size = sizeof(offset);
 
     //printf("New query: %s, len: %d\n", term, strlen(term));
