@@ -77,6 +77,14 @@ pmemkv_db *n2f_db = NULL;
 
 char terms[NTERMS][MAXWORDLENGTH];
 
+typedef struct {
+    void *data;
+    u_int32_t size;
+    u_int32_t ulen;
+    u_int32_t dlen;
+    u_int32_t doff;
+    u_int32_t flags = DB_DBT_MALLOC;
+} DBT;
 
 struct Block {
     int next; // next block
@@ -198,6 +206,8 @@ static struct sharedmem {
     volatile int did;
     volatile uint64_t tot;
 } *shared;
+
+
 
 
 #define NPMC 1
@@ -575,7 +585,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     start_timer(timer_query, cid);
     #endif
 
-    if ((w2p_db->get(w2p_db, NULL, &key, &data, DB_DBT_MALLOC) != 0) || (data.size != sizeof(offset))) {
+    if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
         //printf("no such word found in database: %s", term);
         return NULL;
     }
