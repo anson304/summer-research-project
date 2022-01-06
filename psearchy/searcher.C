@@ -409,7 +409,6 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     ind_offset offset;
     DBT key, data;
 
-    data.set_flags(DB_DBT_MALLOC);
 
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
@@ -560,7 +559,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     unsigned long long offset;
     DBT key, data;
-    data.set_flags(DB_DBT_MALLOC);
+    data.flags = DB_DBT_MALLOC;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
