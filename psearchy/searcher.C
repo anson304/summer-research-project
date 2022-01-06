@@ -559,6 +559,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     unsigned long long offset;
     DBT key, data;
+    key.flags = DB_DBT_MALLOC;
     data.flags = DB_DBT_MALLOC;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
