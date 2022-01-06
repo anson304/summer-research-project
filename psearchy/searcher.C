@@ -895,7 +895,7 @@ int main(int argc, char *argv[]) {
     end_timer(&timer_main,0);
     print_uni_timer(&timer_main);
     print_uni_timer(&timer_alloc_table);
-    printf("doterms: %.6f\n", get_uni_timer(timer_doterms)/repeats);
+    printf("doterms: %.6f\n", get_uni_timer(&timer_doterms)/repeats);
 
     double syncTime = 0;
 
