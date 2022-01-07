@@ -431,19 +431,19 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 //    }
     //free(data.data);
 
-    if (fseeko(fp_stock,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
+    if (fseeko(fp_stock[cid],(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
         fprintf(stderr,"seek error\n");
 //        _max = _in_core_p = 0;
         return NULL;
     }
 
     char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
-    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp_stock);
+    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp_stock[cid]);
     //printf("Term: %s\n",w.c_str());
     //printf("Wordbuf: %s\n",wordbuf);
     if ((r!= (w.size()+1+sizeof(_max))) || (strcmp(w.c_str(),wordbuf)!=0)) {
         fprintf(stderr,"read error! read %d char (%s) opposed to %s\
-        end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock)?1:0);
+        end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock[cid])?1:0);
         //_max = _in_core_p = 0;
         return bufferP;
     }
@@ -459,7 +459,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
 //    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 //    PostIt *infop;
-    bufferP = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+    bufferP = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 
 //    if (_max > BLOCKSIZE) {
 //        _max = BLOCKSIZE;
