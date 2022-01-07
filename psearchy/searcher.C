@@ -183,9 +183,9 @@ struct pass0_state_info {
 
 
 struct pass0_state ps;
-char *fp_sst;
+char *fp_sst[32];
 DB *w2p_db[32];
-FILE *fp_stock;
+FILE *fp_stock[32];
 
 
 bool update_only;
@@ -801,12 +801,12 @@ int main(int argc, char *argv[]) {
 
         pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
         long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
-        fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
         char w2p_path[MAXFILENAME];
         sprintf(w2p_path, "/dev/shm/w2p.db");
 
         for (int i = 0; i < ncore; i++) {
+            fp_sst[i] = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
             int err = db_create(&w2p_db[i], NULL, 0);
             err = w2p_db[i]->open(w2p_db[i], NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
             if (err) {
@@ -818,7 +818,7 @@ int main(int argc, char *argv[]) {
     #else
         char filename[100];
         sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
-        fp_stock = fopen(filename,"r");
+
 
         if (!fp_stock) {
             fprintf(stderr, "error opening %s\n", filename);
@@ -830,6 +830,7 @@ int main(int argc, char *argv[]) {
         sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
 
         for (int i = 0; i < ncore; i++) {
+            fp_stock[i] = fopen(filename,"r");
             int err = db_create(&w2p_db[i], NULL, 0);
             assert(!err);
             err = w2p_db[i]->open(w2p_db[i], NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
