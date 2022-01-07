@@ -808,7 +808,7 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i < ncore; i++) {
             int err = db_create(&w2p_db[i], NULL, 0);
-            err = w2p_db[i]->open(w2p_db[i], NULL, w2p_path, NULL, DB_BTREE, DB_THREAD,  0666);
+            err = w2p_db[i]->open(w2p_db[i], NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
             if (err) {
                 fprintf(stderr, "failed to open %s\n", w2p_path);
                 exit(1);
@@ -832,7 +832,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < ncore; i++) {
             int err = db_create(&w2p_db[i], NULL, 0);
             assert(!err);
-            err = w2p_db[i]->open(w2p_db[i], NULL, dbname, NULL, DB_BTREE, DB_THREAD,  0666);
+            err = w2p_db[i]->open(w2p_db[i], NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
             if (err) {
                 fprintf(stderr, "failed to open %s\n", dbname);
                 exit(1);
