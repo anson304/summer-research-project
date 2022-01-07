@@ -407,8 +407,8 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
     key.size = w.size() + 1;
-    data.flags = DB_DBT_MALLOC;
-    data.data = malloc(sizeof offset);
+    //data.flags = DB_DBT_MALLOC;
+    data.data = &offset;
     data.size = sizeof(offset);
 
     size_t _in_core_p_sz;
@@ -427,9 +427,9 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         //printf("no such word found in database\n");
         return NULL;
     }
-    memcpy(&offset,data.data,sizeof(offset));
+    //memcpy(&offset,data.data,sizeof(offset));
 //    }
-    free(data.data);
+    //free(data.data);
 
     if (fseeko(fp_stock,(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
         fprintf(stderr,"seek error\n");
