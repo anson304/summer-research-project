@@ -427,7 +427,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         //printf("no such word found in database\n");
         return NULL;
     }
-    //memcpy(&offset,data.data,sizeof(offset));
+    memcpy(&offset,data.data,sizeof(offset));
 //    }
     //free(data.data);
 
