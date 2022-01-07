@@ -438,6 +438,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
     unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp_stock);
+    printf("Wordbuf: %s\n",wordbuf);
     if ((r!= (w.size()+1+sizeof(_max))) || (strcmp(w.c_str(),wordbuf)!=0)) {
         fprintf(stderr,"read error! read %d char (%s) opposed to %s\
         end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock)?1:0);
