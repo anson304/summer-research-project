@@ -888,18 +888,20 @@ int main(int argc, char *argv[]) {
 //    if (w2p_db)
     for (int i = 0; i < ncore; i++) {
         w2p_db[i]->close(w2p_db[i],0);
+        munmap(fp_sst[i], sst_size);
     }
 
     munmap(psinfo, sizeof(struct pass0_state_info));
-    munmap(fp_sst, sst_size);
+
 
 #else
 //    if (w2p_db)
 //        w2p_db->close(w2p_db,0);
     for (int i = 0; i < ncore; i++) {
         w2p_db[i]->close(w2p_db[i],0);
+        fclose(fp_stock[i]);
     }
-    fclose(fp_stock);
+
 
 #endif
 
