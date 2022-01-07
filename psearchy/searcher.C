@@ -183,9 +183,10 @@ struct pass0_state_info {
 
 
 struct pass0_state ps;
-char *fp_sst;
-DB *w2p_db;
+char *fp_sst[];
+DB *w2p_db[32];
 FILE *fp_stock;
+
 
 bool update_only;
 
@@ -421,7 +422,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     //printf("Get offset\n");
 //    if (w2p_db) {
-    if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+    if ((w2p_db[cid]->get(w2p_db[cid], NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
 //            _max = _in_core_p = 0;
         //printf("no such word found in database\n");
         return NULL;
@@ -577,7 +578,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     start_timer(timer_query, cid);
     #endif
 
-    if ((w2p_db->get(w2p_db, NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+    if ((w2p_db[cid]->get(w2p_db[cid], NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
         //printf("no such word found in database: %s", term);
         return NULL;
     }
@@ -802,21 +803,20 @@ int main(int argc, char *argv[]) {
         long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
         fp_sst = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
 
-
-
         char w2p_path[MAXFILENAME];
-        int err = db_create(&w2p_db, NULL, 0);
         sprintf(w2p_path, "/dev/shm/w2p.db");
-        err = w2p_db->open(w2p_db, NULL, w2p_path, NULL, DB_BTREE, DB_THREAD,  0666);
-        if (err) {
-            fprintf(stderr, "failed to open %s\n", w2p_path);
-            exit(1);
-        }
-    #else
-        char dbname[100];
-        char filename[100];
-        int err;
 
+        for (int i = 0; i < ncore; i++) {
+            int err = db_create(&w2p_db[i], NULL, 0);
+            err = w2p_db[i]->open(w2p_db[i], NULL, w2p_path, NULL, DB_BTREE, DB_THREAD,  0666);
+            if (err) {
+                fprintf(stderr, "failed to open %s\n", w2p_path);
+                exit(1);
+            }
+        }
+
+    #else
+        char filename[100];
         sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
         fp_stock = fopen(filename,"r");
 
@@ -826,13 +826,17 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
+        char dbname[100];
         sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
-        err = db_create(&w2p_db, NULL, 0);
-        assert(!err);
-        err = w2p_db->open(w2p_db, NULL, dbname, NULL, DB_BTREE, DB_THREAD,  0666);
-        if (err) {
-            fprintf(stderr, "failed to open %s\n", dbname);
-            exit(1);
+
+        for (int i = 0; i < ncore; i++) {
+            int err = db_create(&w2p_db[i], NULL, 0);
+            assert(!err);
+            err = w2p_db[i]->open(w2p_db[i], NULL, dbname, NULL, DB_BTREE, DB_THREAD,  0666);
+            if (err) {
+                fprintf(stderr, "failed to open %s\n", dbname);
+                exit(1);
+            }
         }
 
     #endif
@@ -879,16 +883,21 @@ int main(int argc, char *argv[]) {
     munmap(ps.blocks, sizeof(struct Block) * ps.psinfo->maxblocks);
     munmap(ps.psinfo, sizeof(struct pass0_state_info));
 #elif SST
-    if (w2p_db)
-        w2p_db->close(w2p_db,0);
+
+//    if (w2p_db)
+    for (int i = 0; i < ncore; i++) {
+        w2p_db[i]->close(w2p_db[i],0);
+    }
 
     munmap(psinfo, sizeof(struct pass0_state_info));
     munmap(fp_sst, sst_size);
 
 #else
-    if (w2p_db)
-        w2p_db->close(w2p_db,0);
-
+//    if (w2p_db)
+//        w2p_db->close(w2p_db,0);
+    for (int i = 0; i < ncore; i++) {
+        w2p_db[i]->close(w2p_db[i],0);
+    }
     fclose(fp_stock);
 
 #endif
