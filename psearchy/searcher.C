@@ -183,7 +183,7 @@ struct pass0_state_info {
 
 
 struct pass0_state ps;
-char *fp_sst[];
+char *fp_sst;
 DB *w2p_db[32];
 FILE *fp_stock;
 
