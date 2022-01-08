@@ -407,6 +407,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     printf("New query: %s, len: %d\n", term, strlen(term));
 #endif
 
+
     ind_offset offset;
     DBT key, data;
     bzero(&key,sizeof(key));
