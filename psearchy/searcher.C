@@ -554,7 +554,6 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
 
 PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
-
     string w = string(term);
 
     unsigned long long offset;
@@ -563,8 +562,9 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
     key.size = w.size() + 1;
-    data.flags = DB_DBT_MALLOC;
-    data.data = malloc(sizeof offset);
+    //data.flags = DB_DBT_MALLOC;
+//    data.data = malloc(sizeof offset);
+    data.data = &offset;
     data.size = sizeof(offset);
 
     //printf("New query: %s, len: %d\n", term, strlen(term));
