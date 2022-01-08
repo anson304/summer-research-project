@@ -585,7 +585,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     }
     memcpy(&offset,data.data,sizeof(offset));
 
-    free(data.data);
+    //free(data.data);
     //printf("offset:%d\n", offset);
 
     //printf("fp:%d\n", fp);
