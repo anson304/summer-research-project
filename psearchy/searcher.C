@@ -607,7 +607,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 #endif
 
 
-    memcpy(bufferP, fp_sst+offset, sizeof(PostIt)*docCount);
+    memcpy(bufferP, fp_sst[cid]+offset, sizeof(PostIt)*docCount);
     *bufferi = sizeof(PostIt)*docCount;
 
 #ifdef DEBUG
