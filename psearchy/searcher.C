@@ -846,6 +846,8 @@ int main(int argc, char *argv[]) {
     end_timer(&timer_alloc_table, 0);
 #endif
 
+    printf("Finished alloc table\n");
+
 #ifdef W2B_CMAP_PM
     char w2b_dbname[100]; // word to bucket db name
     sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
@@ -874,6 +876,7 @@ int main(int argc, char *argv[]) {
     #ifdef TIMER
         end_timer(&timer_doterms,0);
     #endif
+    printf("Finished doterms\n");
 
 
 #ifdef W2B_CMAP_PM
