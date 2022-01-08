@@ -420,7 +420,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     size_t _in_core_p_sz;
     void *_in_core_p_real;
-    unsigned _max = 0;
+    unsigned docCount = 0;
 
     char *_incore_vec = NULL;
     #ifdef TIMER
@@ -448,11 +448,11 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         return NULL;
     }
 
-    char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
-    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(_max),fp_stock[cid]);
+    char wordbuf[100+2+sizeof(docCount)]; //max word le default val is 100
+    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(docCount),fp_stock[cid]);
     //printf("Term: %s\n",w.c_str());
     //printf("Wordbuf: %s\n",wordbuf);
-    if ((r!= (w.size()+1+sizeof(_max))) || (strcmp(w.c_str(),wordbuf)!=0)) {
+    if ((r!= (w.size()+1+sizeof(docCount))) || (strcmp(w.c_str(),wordbuf)!=0)) {
     #ifdef DEBUG
         fprintf(stderr,"read error! read %d char (%s) opposed to %s\
         end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock[cid])?1:0);
@@ -467,21 +467,21 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     //printf("r:%d\n", r);
 #endif
 
-    offset += (w.size()+1 + sizeof(_max));
-    _max = *((unsigned *)(wordbuf+w.size()+1));
+offset += (w.size()+1 + sizeof(docCount));
+    docCount = *((unsigned *)(wordbuf+w.size()+1));
 
-    bufferP = (PostIt *)malloc(sizeof(PostIt)*_max);
-    //printf("Allocated buffer for %d postings\n",_max);
+    bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
+    printf("Allocated buffer for %d postings\n",docCount);
 
 //    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 //    PostIt *infop;
-    bufferP = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+bufferP = (PostIt *)xmmap(docCount*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 
 #ifdef DEBUG
     for (int i=0; i<docCount; i++) {
         infop = bufferP + i;
         printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
-        counter++;
+        //counter++;
     }
 #endif
 
