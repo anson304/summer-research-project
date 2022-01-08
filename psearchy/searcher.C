@@ -501,14 +501,14 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
 #ifdef W2B_CMAP_PM
     int s = pmemkv_exists(w2b_db, term, strlen(term)); // check if key exists
     if (s == PMEMKV_STATUS_OK) {
-        printf("word found in cmap\n");
+        //printf("word found in cmap\n");
         char val[MAX_VAL_LEN];
         s = pmemkv_get_copy(w2b_db, term, strlen(term), val, MAX_VAL_LEN, NULL);
         ASSERT(s == PMEMKV_STATUS_OK);
         //printf("index:%s\n", val);
         bu = &ps.buckets[atoi(val)];
     } else if (s == PMEMKV_STATUS_NOT_FOUND) {
-        printf("word not found in cmap\n");
+        //printf("word not found in cmap\n");
     } else {
         printf("error with cmap\n");
         exit(1);
@@ -519,7 +519,7 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
 #endif
     bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
     if(bu->used == 0){
-        printf("word not found\n");
+        //printf("word not found\n");
     } else {
         bl = &ps.blocks[bu->b0];
         bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
