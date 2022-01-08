@@ -471,7 +471,10 @@ offset += (w.size()+1 + sizeof(docCount));
     docCount = *((unsigned *)(wordbuf+w.size()+1));
 
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
+
+#ifdef DEBUG
     printf("Allocated buffer for %d postings\n",docCount);
+#endif
 
 //    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 //    PostIt *infop;
