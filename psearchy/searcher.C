@@ -590,12 +590,12 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     //free(data.data);
 
 #ifdef DEBUG
-    printf("offset:%d\n", offset);
+    printf("offset:%u\n", offset);
 #endif
 
     unsigned docCount;
     //printf("docCount:%u\n", docCount);
-    memcpy(&docCount, fp_sst+offset, sizeof(docCount));
+    memcpy(&docCount, fp_sst[cid]+offset, sizeof(docCount));
 #ifdef DEBUG
     printf("docCount:%u\n", docCount);
 #endif
