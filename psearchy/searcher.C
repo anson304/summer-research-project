@@ -398,9 +398,14 @@ int lookup(struct pass0_state *ps, char *word) {
 PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     PostIt *bufferP;
+    PostIt *infop;
 
 
     string w = string(term);
+
+#ifdef DEBUG
+    printf("New query: %s, len: %d\n", term, strlen(term));
+#endif
 
     ind_offset offset;
     DBT key, data;
@@ -425,7 +430,9 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 //    if (w2p_db) {
     if ((w2p_db[cid]->get(w2p_db[cid], NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
 //            _max = _in_core_p = 0;
-        //printf("no such word found in database\n");
+    #ifdef DEBUG
+        printf("no such word found in database\n");
+    #endif
         return NULL;
     }
     memcpy(&offset,data.data,sizeof(offset));
@@ -433,7 +440,9 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     //free(data.data);
 
     if (fseeko(fp_stock[cid],(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
+    #ifdef DEBUG
         fprintf(stderr,"seek error\n");
+    #endif
 //        _max = _in_core_p = 0;
         return NULL;
     }
@@ -443,15 +452,19 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     //printf("Term: %s\n",w.c_str());
     //printf("Wordbuf: %s\n",wordbuf);
     if ((r!= (w.size()+1+sizeof(_max))) || (strcmp(w.c_str(),wordbuf)!=0)) {
+    #ifdef DEBUG
         fprintf(stderr,"read error! read %d char (%s) opposed to %s\
         end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock[cid])?1:0);
         //_max = _in_core_p = 0;
+    #endif
         return bufferP;
 
     }
-    //printf("wordBuff: %s\n", wordbuf);
+#ifdef DEBUG
+    printf("wordBuff: %s\n", wordbuf);
     //*bufferi += sprintf(bufferP + *bufferi, "W:%s,", wordbuf);
     //printf("r:%d\n", r);
+#endif
 
     offset += (w.size()+1 + sizeof(_max));
     _max = *((unsigned *)(wordbuf+w.size()+1));
@@ -462,6 +475,14 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 //    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 //    PostIt *infop;
     bufferP = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+
+#ifdef DEBUG
+    for (int i=0; i<docCount; i++) {
+        infop = bufferP + i;
+        printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
+        counter++;
+    }
+#endif
 
 //    if (_max > BLOCKSIZE) {
 //        _max = BLOCKSIZE;
