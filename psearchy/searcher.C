@@ -576,7 +576,6 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     PostIt *bufferP;
     PostIt *infop;
     int MAX_VAL_LEN = 64;
-    int counter = 0;
 
     #ifdef TIMER
     start_timer(timer_query, cid);
