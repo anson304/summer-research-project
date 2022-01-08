@@ -612,7 +612,7 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
 #ifdef DEBUG
     for (int i=0; i<docCount; i++) {
-        infop = bufferP + i*sizeof(PostIt);
+        infop = bufferP + i;
         printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
         counter++;
     }
