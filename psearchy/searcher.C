@@ -1,6 +1,7 @@
 
 #define LINUX
 #define TIMER
+#define DEBUG
 
 #include <libpmemkv.h>
 #include <libpmem.h>
@@ -566,8 +567,10 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 //    data.data = malloc(sizeof offset);
     data.data = &offset;
     data.size = sizeof(offset);
-
-    //printf("New query: %s, len: %d\n", term, strlen(term));
+    int counter = 0;
+#ifdef DEBUG
+    printf("New query: %s, len: %d\n", term, strlen(term));
+#endif
     struct Bucket *bu;
     struct Block *bl;
     PostIt *bufferP;
@@ -586,40 +589,45 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
     memcpy(&offset,data.data,sizeof(offset));
 
     //free(data.data);
-    //printf("offset:%d\n", offset);
 
-    //printf("fp:%d\n", fp);
+#ifdef DEBUG
+    printf("offset:%d\n", offset);
+#endif
 
     unsigned docCount;
     //printf("docCount:%u\n", docCount);
     memcpy(&docCount, fp_sst+offset, sizeof(docCount));
-
-    //printf("docCount:%u\n", docCount);
+#ifdef DEBUG
+    printf("docCount:%u\n", docCount);
+#endif
     offset += sizeof (unsigned);
 
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
-    //printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
+#ifdef DEBUG
+    printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
+#endif
+
 
     memcpy(bufferP, fp_sst+offset, sizeof(PostIt)*docCount);
     *bufferi = sizeof(PostIt)*docCount;
 
-//    PostIt *_in_core = (PostIt *) (fp + offset);
-//    for (int i=0; i<docCount; i++) {
-//        infop = bufferP + *bufferi;
-//        infop->dn = _in_core->dn;
-//        infop->wc = _in_core->wc;
-//        //printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
-//        ++*bufferi;
-//        _in_core++;
-//    }
+#ifdef DEBUG
+    for (int i=0; i<docCount; i++) {
+        infop = bufferP + i*sizeof(PostIt);
+        printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
+        counter++;
+    }
+#endif
 
 
-    #ifdef TIMER
+
+#ifdef TIMER
     end_timer(timer_query, cid);
-    #endif
+#endif
 
-
-    //printf("Counter: %d\n", counter);
+#ifdef DEBUG
+    printf("Counter: %d\n", counter);
+#endif
     return bufferP;
 }
 
