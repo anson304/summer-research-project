@@ -326,7 +326,7 @@ xmmap(size_t len, int fd, off_t offset, void *& realp, size_t& reallen)
     noffset = offset & ~(pagesize-1);
     nlen = len + (offset - noffset);
 
-    p = mmap(0, nlen, PROT_READ, MAP_SHARED, fd, noffset);
+    p = mmap(0, nlen, PROT_READ, MAP_PRIVATE, fd, noffset);
     if(p == (void *)-1){
         fprintf(stderr, "queryop: xmmap %ld bytes at %ld failed: %s\n",
                 (long)nlen,
@@ -446,6 +446,7 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
         end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock[cid])?1:0);
         //_max = _in_core_p = 0;
         return bufferP;
+
     }
     //printf("wordBuff: %s\n", wordbuf);
     //*bufferi += sprintf(bufferP + *bufferi, "W:%s,", wordbuf);
@@ -783,9 +784,9 @@ int main(int argc, char *argv[]) {
         int buckets_file = open (buckets_path, O_RDONLY, 0640);
         int blocks_file = open (blocks_path, O_RDONLY, 0640);
 
-        ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
-        ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_SHARED, buckets_file, 0);
-        ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
+        ps.psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_PRIVATE, psinfo_file, 0);
+        ps.buckets = (struct Bucket *)mmap (0, sizeof(struct Bucket) * ps.psinfo->maxbuckets, PROT_READ, MAP_PRIVATE, buckets_file, 0);
+        ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_PRIVATE, blocks_file, 0);
     #elif SST
         char psinfo_path[100];
         sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
@@ -799,14 +800,14 @@ int main(int argc, char *argv[]) {
         int psinfo_file = open (psinfo_path, O_RDONLY, 0640);
         int sst_file = open (sst_path, O_RDONLY, 0640);
 
-        pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_SHARED, psinfo_file, 0);
+        pass0_state_info *psinfo = (struct pass0_state_info *)mmap (0, sizeof(struct pass0_state_info), PROT_READ, MAP_PRIVATE, psinfo_file, 0);
         long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
 
         char w2p_path[MAXFILENAME];
         sprintf(w2p_path, "/dev/shm/w2p.db");
 
         for (int i = 0; i < ncore; i++) {
-            fp_sst[i] = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
+            fp_sst[i] = (char *)mmap (0, sst_size, PROT_READ, MAP_PRIVATE, sst_file, 0);
             int err = db_create(&w2p_db[i], NULL, 0);
             err = w2p_db[i]->open(w2p_db[i], NULL, w2p_path, NULL, DB_BTREE, DB_RDONLY,  0666);
             if (err) {
