@@ -443,38 +443,9 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     for (int i=0; i<(sizeof(PostIt)*docCount); i++) {
         bufferP[i] = *(word_ptr[cid] + offset + i);
     }
-
-
     return bufferP;
 
     }
-#ifdef DEBUG
-    printf("wordBuff: %s\n", wordbuf);
-#endif
-
-    offset += (w.size()+1 + sizeof(docCount));
-    docCount = *((unsigned *)(wordbuf+w.size()+1));
-
-    bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
-
-#ifdef DEBUG
-    printf("Allocated buffer for %d postings\n",docCount);
-#endif
-
-    bufferP = (PostIt *)xmmap(docCount*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
-
-#ifdef DEBUG
-    for (int i=0; i<docCount; i++) {
-        infop = bufferP + i;
-        printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
-    }
-#endif
-
-    #ifdef TIMER
-    end_timer(timer_query, cid);
-    #endif
-
-    return bufferP;
 }
 
 
