@@ -942,7 +942,7 @@ int main(int argc, char *argv[]) {
     double tailLatSum = 0.0;
 
     for (int r=0; r<REPEATS; r++) {
-        tailLatSum += queryTimeArr[r][max_term-max_term/100]
+        tailLatSum += queryTimeArr[r][max_term-max_term/100];
     }
     printf("tail latency avg: %.6f\n", tailLatSum/REPEATS);
     printf("tail latency last: %.6f\n", queryTimeArr[REPEATS][max_term-max_term/100]);
