@@ -445,8 +445,8 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     }
     return bufferP;
 
-    }
 }
+
 
 
 PostIt* query_term_pm(char *term, int *bufferi, int cid) {
