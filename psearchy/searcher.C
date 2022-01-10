@@ -396,9 +396,9 @@ int lookup(struct pass0_state *ps, char *word) {
     exit(1);
 }
 
-PostIt* query_term_stock(char *term, int *bufferi, int cid) {
+char* query_term_stock(char *term, int *bufferi, int cid) {
 
-    PostIt *bufferP;
+    char *bufferP;
     PostIt *infop;
 
 
