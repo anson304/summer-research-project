@@ -67,6 +67,7 @@ int order = 0;
 int threaded = 1;
 int dblim = 0;
 int repeats = 5;
+int currRepeat = 0;
 
 pmemkv_db *w2b_db = NULL;
 pmemkv_db *n2f_db = NULL;
@@ -77,6 +78,7 @@ pmemkv_db *n2f_db = NULL;
 #define MAXFILENAME 200
 
 char terms[NTERMS][MAXWORDLENGTH];
+double queryTimeArr[repeats][NTERMS];
 
 struct Block {
     int next; // next block
@@ -661,11 +663,18 @@ void *doterms(void *arg) {
         //printf("cid: %d, bufferi: %d\n", cid, bufferi);
         // pthread_mutex_lock(&input_lock);
 //        printf("Query time: ");
+
 //        print_timer(timer_query, cid);
+        queryTimeArr[currRepeat][d] = get_timer(timer_query, cid);
         reset_Timer(timer_query, cid);
     }
     // pthread_mutex_unlock(&input_lock);
 
+}
+
+int cmpfunc (const void * a, const void * b)
+{
+    return (*(double*)a > *(double*)b) ? 1 : (*(double*)a < *(double*)b) ? -1:0 ;
 }
 
 int main(int argc, char *argv[]) {
@@ -849,10 +858,10 @@ int main(int argc, char *argv[]) {
         start_timer(&timer_doterms,0);
     #endif
 
-        for (int r = 0; r < repeats; r++) { // 5 repeats
+        for (currRepeat = 0; currRepeat < repeats; currRepeat++) { // 5 repeats
 
         #ifdef TIMER
-            if (r == repeats-1) {
+            if (currRepeat == repeats-1) {
                 start_timer(&timer_doterms_last,0);
             }
         #endif
@@ -867,7 +876,7 @@ int main(int argc, char *argv[]) {
                 assert(pthread_join(tha[i], &value) == 0);
             delete[] tha;
         #ifdef TIMER
-            if (r == repeats-1) {
+            if (currRepeat == repeats-1) {
                 end_timer(&timer_doterms_last,0);
             }
         #endif
@@ -914,7 +923,7 @@ int main(int argc, char *argv[]) {
     end_timer(&timer_main,0);
     print_uni_timer(&timer_main);
     print_uni_timer(&timer_alloc_table);
-    printf("doterms: %.6f\n", get_uni_timer(&timer_doterms)/repeats);
+    printf("doterms avg: %.6f\n", get_uni_timer(&timer_doterms)/repeats);
     print_uni_timer(&timer_doterms_last);
 
     double syncTime = 0;
@@ -924,6 +933,29 @@ int main(int argc, char *argv[]) {
     }
     syncTime = syncTime/repeats;
     printf("sync: %.6f\n", syncTime);
+
+    //sort array
+    for (int r=0; r<repeats; r++) {
+        qsort(queryTimeArr[r], max_term, sizeof(double), cmpfunc);
+    }
+    double tailLatSum = 0.0;
+
+    for (int r=0; r<repeats; r++) {
+        tailLatSum += queryTimeArr[r][max_term-max_term/100]
+    }
+    printf("tail latency avg: %.6f\n", tailLatSum/repeats);
+    printf("tail latency last: %.6f\n", queryTimeArr[repeats][max_term-max_term/100]);
+
+
+
+
+
+
+
+
+
+    //print tail latency
+
 #endif
 
 exit(0);
