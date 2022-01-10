@@ -157,6 +157,7 @@ struct timer timer_main;
 struct timer timer_alloc_table;
 struct timer *timer_query;
 struct timer timer_doterms;
+struct timer *timer_doterms_last;
 struct timer *timer_sync;
 
 
@@ -698,6 +699,8 @@ int main(int argc, char *argv[]) {
     initialize_timer(&timer_main, 0, "main");
     initialize_timer(&timer_alloc_table, 0, "alloc_table");
     initialize_timer(&timer_doterms, 0, "doterms");
+    initialize_timer(&timer_doterms_last, 0, "doterms_last");
+
     timer_sync = (struct timer*) malloc(ncore * sizeof(struct timer));
     timer_query = (struct timer*) malloc(ncore * sizeof(struct timer));
     for(int core=0; core<ncore; core++) {
@@ -842,7 +845,14 @@ int main(int argc, char *argv[]) {
     #ifdef TIMER
         start_timer(&timer_doterms,0);
     #endif
+
         for (int r = 0; r < repeats; r++) { // 5 repeats
+
+        #ifdef TIMER
+            if (r == repeats-1) {
+                start_timer(&timer_doterms_last,0);
+            }
+        #endif
             pthread_t *tha = new pthread_t[ncore];
             void *value;
             shared->did = 1;
@@ -853,6 +863,11 @@ int main(int argc, char *argv[]) {
             for(int i = 0; i < ncore; i++)
                 assert(pthread_join(tha[i], &value) == 0);
             delete[] tha;
+        #ifdef TIMER
+            if (r == repeats-1) {
+                end_timer(&timer_doterms_last,0);
+            }
+        #endif
         }
     #ifdef TIMER
         end_timer(&timer_doterms,0);
@@ -897,6 +912,7 @@ int main(int argc, char *argv[]) {
     print_uni_timer(&timer_main);
     print_uni_timer(&timer_alloc_table);
     printf("doterms: %.6f\n", get_uni_timer(&timer_doterms)/repeats);
+    print_uni_timer(&timer_doterms_last);
 
     double syncTime = 0;
 
