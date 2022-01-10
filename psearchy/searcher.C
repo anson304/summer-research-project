@@ -186,7 +186,8 @@ struct pass0_state_info {
 struct pass0_state ps;
 char *fp_sst[32];
 DB *w2p_db[32];
-FILE *fp_stock[32];
+int fp_stock[32];
+char **word_ptr; //qe_term_stock2
 
 
 bool update_only;
@@ -407,19 +408,15 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     printf("New query: %s, len: %d\n", term, strlen(term));
 #endif
 
-
     ind_offset offset;
     DBT key, data;
     bzero(&key,sizeof(key));
     bzero(&data,sizeof(data));
     key.data = (void *)w.c_str();
     key.size = w.size() + 1;
-    //data.flags = DB_DBT_MALLOC;
     data.data = &offset;
     data.size = sizeof(offset);
 
-    size_t _in_core_p_sz;
-    void *_in_core_p_real;
     unsigned docCount = 0;
 
     char *_incore_vec = NULL;
@@ -427,47 +424,35 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
     start_timer(timer_query, cid);
     #endif
 
-    //printf("Get offset\n");
-//    if (w2p_db) {
     if ((w2p_db[cid]->get(w2p_db[cid], NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
-//            _max = _in_core_p = 0;
     #ifdef DEBUG
         printf("no such word found in database\n");
     #endif
         return NULL;
     }
     memcpy(&offset,data.data,sizeof(offset));
-//    }
-    //free(data.data);
-
-    if (fseeko(fp_stock[cid],(off_t)offset,SEEK_SET) != 0) { // moves the file pointer to the offset
-    #ifdef DEBUG
-        fprintf(stderr,"seek error\n");
-    #endif
-//        _max = _in_core_p = 0;
-        return NULL;
-    }
 
     char wordbuf[100+2+sizeof(docCount)]; //max word le default val is 100
-    unsigned r = fread(wordbuf,1,w.size()+1+sizeof(docCount),fp_stock[cid]);
-    //printf("Term: %s\n",w.c_str());
-    //printf("Wordbuf: %s\n",wordbuf);
-    if ((r!= (w.size()+1+sizeof(docCount))) || (strcmp(w.c_str(),wordbuf)!=0)) {
-    #ifdef DEBUG
-        fprintf(stderr,"read error! read %d char (%s) opposed to %s\
-        end of file? %u\n", r, wordbuf,w.c_str(),feof(fp_stock[cid])?1:0);
-        //_max = _in_core_p = 0;
-    #endif
-        return bufferP;
+    for(unsigned i=0; i<(100+2+sizeof(docCount)); i++)
+        wordbuf[i] = *(word_ptr[cid] + offset + i);
+    offset += (w.size()+1 + sizeof(docCount));
+    docCount = *((unsigned *)(wordbuf+w.size()+1));
+
+    bufferP = (char *)malloc(sizeof(PostIt)*docCount);
+
+    for (int i=0; i<(sizeof(PostIt)*docCount); i++) {
+        bufferP[i] = *(word_ptr[cid] + offset + i);
+    }
+
+
+    return bufferP;
 
     }
 #ifdef DEBUG
     printf("wordBuff: %s\n", wordbuf);
-    //*bufferi += sprintf(bufferP + *bufferi, "W:%s,", wordbuf);
-    //printf("r:%d\n", r);
 #endif
 
-offset += (w.size()+1 + sizeof(docCount));
+    offset += (w.size()+1 + sizeof(docCount));
     docCount = *((unsigned *)(wordbuf+w.size()+1));
 
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
@@ -476,31 +461,14 @@ offset += (w.size()+1 + sizeof(docCount));
     printf("Allocated buffer for %d postings\n",docCount);
 #endif
 
-//    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
-//    PostIt *infop;
-bufferP = (PostIt *)xmmap(docCount*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+    bufferP = (PostIt *)xmmap(docCount*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 
 #ifdef DEBUG
     for (int i=0; i<docCount; i++) {
         infop = bufferP + i;
         printf("dn: %d, wc: %d\n", infop->dn, infop->wc);
-        //counter++;
     }
 #endif
-
-//    if (_max > BLOCKSIZE) {
-//        _max = BLOCKSIZE;
-//    }
-//    for (int i=0; i < _max; i++) {
-//        infop = bufferP + *bufferi;
-//        infop->dn = _in_core->dn;
-//        infop->wc = _in_core->wc;
-//        ++*bufferi;
-//        //printf("PostIt,docid:%d,wc:%d\n", _in_core->dn, _in_core->wc);
-//        //*bufferi += sprintf(bufferP + *bufferi,"DID:%d,WC:%d,",_in_core->dn, _in_core->wc);
-//        //*bufferi += sprintf(bufferP + *bufferi,"%d,%d\n",_in_core->dn, _in_core->wc);
-//        _in_core++;
-//    }
 
     #ifdef TIMER
     end_timer(timer_query, cid);
@@ -862,8 +830,10 @@ int main(int argc, char *argv[]) {
         char dbname[100];
         sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
 
+        word_ptr = (char**) malloc(ncore * sizeof(char*)); //qe_term_stock2
         for (int i = 0; i < ncore; i++) {
-            fp_stock[i] = fopen(filename,"r");
+            fp_stock[i] = open(filename,O_RDONLY,0640);
+            word_ptr[i] = (char *) mmap (0, 17179869184, PROT_READ, MAP_SHARED, fp_stock[i], 0); //qe_term_stock2
             int err = db_create(&w2p_db[i], NULL, 0);
             assert(!err);
             err = w2p_db[i]->open(w2p_db[i], NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
