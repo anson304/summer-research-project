@@ -76,7 +76,7 @@ pmemkv_db *n2f_db = NULL;
 #define BLOCKSIZE 128
 #define MAXFILENAME 200
 
-#define REPEATS 5
+#define REPEATS 10
 
 char terms[NTERMS][MAXWORDLENGTH];
 double queryTimeArr[REPEATS][NTERMS];
