@@ -66,7 +66,6 @@ int first = 1;
 int order = 0;
 int threaded = 1;
 int dblim = 0;
-int repeats = 5;
 int currRepeat = 0;
 
 pmemkv_db *w2b_db = NULL;
@@ -77,8 +76,10 @@ pmemkv_db *n2f_db = NULL;
 #define BLOCKSIZE 128
 #define MAXFILENAME 200
 
+#define REPEATS 5
+
 char terms[NTERMS][MAXWORDLENGTH];
-double queryTimeArr[repeats][NTERMS];
+double queryTimeArr[REPEATS][NTERMS];
 
 struct Block {
     int next; // next block
@@ -858,10 +859,10 @@ int main(int argc, char *argv[]) {
         start_timer(&timer_doterms,0);
     #endif
 
-        for (currRepeat = 0; currRepeat < repeats; currRepeat++) { // 5 repeats
+        for (currRepeat = 0; currRepeat < REPEATS; currRepeat++) { // 5 repeats
 
         #ifdef TIMER
-            if (currRepeat == repeats-1) {
+            if (currRepeat == REPEATS-1) {
                 start_timer(&timer_doterms_last,0);
             }
         #endif
@@ -876,7 +877,7 @@ int main(int argc, char *argv[]) {
                 assert(pthread_join(tha[i], &value) == 0);
             delete[] tha;
         #ifdef TIMER
-            if (currRepeat == repeats-1) {
+            if (currRepeat == REPEATS-1) {
                 end_timer(&timer_doterms_last,0);
             }
         #endif
@@ -923,7 +924,7 @@ int main(int argc, char *argv[]) {
     end_timer(&timer_main,0);
     print_uni_timer(&timer_main);
     print_uni_timer(&timer_alloc_table);
-    printf("doterms avg: %.6f\n", get_uni_timer(&timer_doterms)/repeats);
+    printf("doterms avg: %.6f\n", get_uni_timer(&timer_doterms)/REPEATS);
     print_uni_timer(&timer_doterms_last);
 
     double syncTime = 0;
@@ -931,20 +932,20 @@ int main(int argc, char *argv[]) {
     for (int i=0; i<ncore; i++) {
         syncTime += get_timer(timer_sync,i);
     }
-    syncTime = syncTime/repeats;
+    syncTime = syncTime/REPEATS;
     printf("sync: %.6f\n", syncTime);
 
     //sort array
-    for (int r=0; r<repeats; r++) {
+    for (int r=0; r<REPEATS; r++) {
         qsort(queryTimeArr[r], max_term, sizeof(double), cmpfunc);
     }
     double tailLatSum = 0.0;
 
-    for (int r=0; r<repeats; r++) {
+    for (int r=0; r<REPEATS; r++) {
         tailLatSum += queryTimeArr[r][max_term-max_term/100]
     }
-    printf("tail latency avg: %.6f\n", tailLatSum/repeats);
-    printf("tail latency last: %.6f\n", queryTimeArr[repeats][max_term-max_term/100]);
+    printf("tail latency avg: %.6f\n", tailLatSum/REPEATS);
+    printf("tail latency last: %.6f\n", queryTimeArr[REPEATS][max_term-max_term/100]);
 
 
 
