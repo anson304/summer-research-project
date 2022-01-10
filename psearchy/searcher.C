@@ -467,14 +467,14 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
 #ifdef W2B_CMAP_PM
     int s = pmemkv_exists(w2b_db, term, strlen(term)); // check if key exists
     if (s == PMEMKV_STATUS_OK) {
-        //printf("word found in cmap\n");
+        printf("word found in cmap\n");
         char val[MAX_VAL_LEN];
         s = pmemkv_get_copy(w2b_db, term, strlen(term), val, MAX_VAL_LEN, NULL);
         ASSERT(s == PMEMKV_STATUS_OK);
-        //printf("index:%s\n", val);
+        printf("index:%s\n", val);
         bu = &ps.buckets[atoi(val)];
     } else if (s == PMEMKV_STATUS_NOT_FOUND) {
-        //printf("word not found in cmap\n");
+        printf("word not found in cmap\n");
     } else {
         printf("error with cmap\n");
         exit(1);
