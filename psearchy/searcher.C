@@ -156,7 +156,7 @@ static double get_timer(struct timer *t, int cid) {
 struct timer timer_main;
 struct timer timer_alloc_table;
 struct timer *timer_query;
-struct timer timer_doterms;
+struct timer *timer_doterms;
 struct timer *timer_doterms_last;
 struct timer *timer_sync;
 
