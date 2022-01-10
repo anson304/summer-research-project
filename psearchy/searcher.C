@@ -635,18 +635,26 @@ void *doterms(void *arg) {
         int bufferi = 0;
 
         PostIt *bufferResult;
+        char *bufferResult2;
 
         #ifdef SST
         bufferResult = query_term_sst(terms[d], &bufferi, cid);
-        #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d], &bufferi, cid);
-        #else
-        bufferResult = query_term_stock(terms[d], &bufferi, cid);
-        #endif
-
         if (bufferi > 0) {
             free (bufferResult);
         }
+        #elif PM_TABLE
+        bufferResult = query_term_pm(terms[d], &bufferi, cid);
+        if (bufferi > 0) {
+            free (bufferResult);
+        }
+        #else
+        bufferResult2 = query_term_stock(terms[d], &bufferi, cid);
+        if (bufferi > 0) {
+            free (bufferResult2);
+        }
+        #endif
+
+
         //printf("cid: %d, bufferi: %d\n", cid, bufferi);
         // pthread_mutex_lock(&input_lock);
 //        printf("Query time: ");
@@ -876,7 +884,7 @@ int main(int argc, char *argv[]) {
 //        w2p_db->close(w2p_db,0);
     for (int i = 0; i < ncore; i++) {
         w2p_db[i]->close(w2p_db[i],0);
-        fclose(fp_stock[i]);
+        //fclose(fp_stock[i]);
     }
 
 
