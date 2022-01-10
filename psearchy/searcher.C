@@ -836,6 +836,7 @@ int main(int argc, char *argv[]) {
     char w2b_dbname[100]; // word to bucket db name
     sprintf(w2b_dbname, "%s/w2b.db", pmemdir);
     open_kv("cmap", w2b_dbname, &w2b_db);
+    printf("Open cmap db\n");
 #endif
 
 
