@@ -81,6 +81,7 @@ pmemkv_db *n2f_db = NULL;
 char terms[NTERMS][MAXWORDLENGTH];
 double queryTimeArr[REPEATS][NTERMS];
 
+
 struct Block {
     int next; // next block
     int n; //number of groups of Tags
