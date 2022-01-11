@@ -448,6 +448,9 @@ char* query_term_stock(char *term, int *bufferi, int cid) {
     for (int i=0; i<(sizeof(PostIt)*docCount); i++) {
         bufferP[i] = *(word_ptr[cid] + offset + i);
     }
+    #ifdef TIMER
+    end_timer(timer_query, cid);
+    #endif
     return bufferP;
 
 }
