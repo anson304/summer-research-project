@@ -926,10 +926,37 @@ int main(int argc, char *argv[]) {
 
 #ifdef TIMER
     end_timer(&timer_main,0);
-    print_uni_timer(&timer_main);
-    print_uni_timer(&timer_alloc_table);
-    printf("doterms avg: %.6f\n", get_uni_timer(&timer_doterms)/REPEATS);
-    print_uni_timer(&timer_doterms_last);
+    //print_uni_timer(&timer_main);
+    //print_uni_timer(&timer_alloc_table);
+
+
+//    printf("doterms avg: %.6f\n", get_uni_timer(&timer_doterms)/REPEATS);
+//    print_uni_timer(&timer_doterms_last);
+//
+//    double syncTime = 0;
+//
+//    for (int i=0; i<ncore; i++) {
+//        syncTime += get_timer(timer_sync,i);
+//    }
+//    syncTime = syncTime/REPEATS;
+//    printf("sync: %.6f\n", syncTime);
+//
+//    //sort array
+//    for (int r=0; r<REPEATS; r++) {
+//        qsort(queryTimeArr[r], max_term, sizeof(double), cmpfunc);
+//    }
+//    double tailLatSum = 0.0;
+//
+//    for (int r=0; r<REPEATS; r++) {
+//        tailLatSum += queryTimeArr[r][max_term-max_term/100-1];
+//    }
+//    printf("tail latency avg: %.6f\n", tailLatSum/REPEATS);
+//    printf("tail latency last: %.6f\n", queryTimeArr[REPEATS-1][max_term-max_term/100-1]);
+
+
+    printf("doterms avg, doterms last, sync, tail latency avg, tail latency last:\n");
+    printf("%.6f\n", get_uni_timer(&timer_doterms)/REPEATS);
+    printf("%.6f\n", get_uni_timer(&timer_doterms_last));
 
     double syncTime = 0;
 
@@ -937,7 +964,7 @@ int main(int argc, char *argv[]) {
         syncTime += get_timer(timer_sync,i);
     }
     syncTime = syncTime/REPEATS;
-    printf("sync: %.6f\n", syncTime);
+    printf("%.6f\n", syncTime);
 
     //sort array
     for (int r=0; r<REPEATS; r++) {
@@ -948,8 +975,8 @@ int main(int argc, char *argv[]) {
     for (int r=0; r<REPEATS; r++) {
         tailLatSum += queryTimeArr[r][max_term-max_term/100-1];
     }
-    printf("tail latency avg: %.6f\n", tailLatSum/REPEATS);
-    printf("tail latency last: %.6f\n", queryTimeArr[REPEATS-1][max_term-max_term/100-1]);
+    printf("%.6f\n", tailLatSum/REPEATS);
+    printf("%.6f\n", queryTimeArr[REPEATS-1][max_term-max_term/100-1]);
 
 
 
