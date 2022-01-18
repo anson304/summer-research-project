@@ -80,7 +80,7 @@ pmemkv_db *sst_db = NULL;
 
 char files[NFILES][MAXFILENAME];
 
-#define BLOCKSIZE 128
+#define BLOCKSIZE 256
 #define MAXWORDLEN 64
 #define MAX_VAL_LEN 16
 
@@ -516,7 +516,7 @@ void *dofiles()
   ps.psinfo->blocki = 0;
   ps.psinfo->maxinfo = 15*GB;
   ps.psinfo->maxword = GB;
-  ps.psinfo->maxblocks = 25*GB/sizeof(struct Block);
+  ps.psinfo->maxblocks = 45*GB/sizeof(struct Block);
   ps.psinfo->maxbuckets = GB/sizeof(struct Bucket);
 
   ps.wordi = 0;

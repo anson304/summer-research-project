@@ -65,7 +65,7 @@ int first = 1;
 int order = 0;
 int threaded = 1;
 int dblim = 0;
-int repeats = 5;
+int repeats = 1;
 
 pmemkv_db *w2b_db = NULL;
 pmemkv_db *n2f_db = NULL;
@@ -158,6 +158,9 @@ struct timer *timer_query;
 struct timer timer_doterms;
 struct timer *timer_sync;
 
+struct timer timer_lookup_word;
+struct timer timer_copy_postings;
+
 
 struct pass0_state {
     char *wordbytes;
@@ -185,7 +188,8 @@ struct pass0_state_info {
 struct pass0_state ps;
 char *fp_sst[32];
 DB *w2p_db[32];
-FILE *fp_stock[32];
+int fp_stock[32];
+char **word_ptr; //qe_term_stock2
 
 
 bool update_only;
@@ -394,9 +398,56 @@ int lookup(struct pass0_state *ps, char *word) {
     exit(1);
 }
 
+char* query_term_stock2(char *term, int *bufferi, int cid) {
+
+    char *bufferP;
+
+    string w = string(term);
+
+    ind_offset offset;
+    DBT key, data;
+    bzero(&key,sizeof(key));
+    bzero(&data,sizeof(data));
+    key.data = (void *)w.c_str();
+    key.size = w.size() + 1;
+    data.data = &offset;
+    data.size = sizeof(offset);
+
+    unsigned _max = 0;
+
+    #ifdef TIMER
+    start_timer(timer_query, cid);
+    #endif
+
+    if ((w2p_db[cid]->get(w2p_db[cid], NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+        return NULL;
+    }
+    memcpy(&offset,data.data,sizeof(offset));
+
+    char wordbuf[100+2+sizeof(_max)]; //max word le default val is 100
+    for(unsigned i=0; i<(100+2+sizeof(_max)); i++)
+          wordbuf[i] = *(word_ptr[cid] + offset + i);
+    offset += (w.size()+1 + sizeof(_max));
+    _max = *((unsigned *)(wordbuf+w.size()+1));
+
+    bufferP = (char *)malloc(sizeof(PostIt)*_max);
+
+    for (int i=0; i<(sizeof(PostIt)*_max); i++) {
+	    bufferP[i] = *(word_ptr[cid] + offset + i);
+    }
+
+    #ifdef TIMER
+    end_timer(timer_query, cid);
+    #endif
+
+    return bufferP;
+}
+
+#if 0
 PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     PostIt *bufferP;
+    PostIt *bufferP_xmmap;
 
 
     string w = string(term);
@@ -459,7 +510,14 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
 //    PostIt *_in_core = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock),(off_t)offset, _in_core_p_real, _in_core_p_sz);
 //    PostIt *infop;
-    bufferP = (PostIt *)xmmap(_max*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+    //bufferP_xmmap = (PostIt *)mmap(_max*sizeof(PostIt),fileno(fp_stock[cid]),(off_t)offset, _in_core_p_real, _in_core_p_sz);
+    bufferP_xmmap = (PostIt *)mmap(0, _max*sizeof(PostIt), PROT_READ, MAP_SHARED, fileno(fp_stock[cid]), 0);
+
+    for (int i=0; i<_max; i++) {
+	    bufferP[i] = bufferP_xmmap[i];
+    }
+    munmap(bufferP_xmmap,_max*sizeof(PostIt));
+
 
 //    if (_max > BLOCKSIZE) {
 //        _max = BLOCKSIZE;
@@ -481,10 +539,11 @@ PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     return bufferP;
 }
+#endif
 
 
 PostIt* query_term_pm(char *term, int *bufferi, int cid) {
-    //printf("New query: %s, len: %d\n", term, strlen(term));
+    printf("New query: %s, len: %d\n", term, strlen(term));
 
     struct Bucket *bu;
     struct Block *bl;
@@ -520,17 +579,33 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
     if(bu->used == 0){
         printf("word not found\n");
     } else {
+    	#ifdef TIMER
+    	start_timer(&timer_lookup_word, cid);
+    	#endif
         bl = &ps.blocks[bu->b0];
+    	#ifdef TIMER
+    	end_timer(&timer_lookup_word, cid);
+    	#endif
         bufferP = (PostIt *)malloc(sizeof(PostIt)*bu->n);
         //printf("Allocated buffer for %d postings\n", bu->n);
 
         while (1) {
+    	    #ifdef TIMER
+    	    start_timer(&timer_copy_postings, cid);
+    	    #endif
             for (int i=0; i<bl->n; i++) {
                 infop = bufferP + *bufferi;
                 infop->dn = bl->p[i].dn;
                 infop->wc = bl->p[i].wc;
                 ++*bufferi;
             }
+	    counter++;
+    	    printf("Counter: bl->n = %d counter = %d\n", bl->n,counter);
+	    //memcpy(bufferP + *bufferi, bl, sizeof(PostIt)*bl->n);
+	    //*bufferi += bl->n;
+    	    #ifdef TIMER
+    	    end_timer(&timer_copy_postings, cid);
+    	    #endif
             if (bl->next != 0) {
                 bl = &ps.blocks[bl->next];
             } else {
@@ -543,8 +618,7 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
     #endif
 
 
-
-    //printf("Counter: %d\n", counter);
+    
     return bufferP;
 }
 
@@ -591,16 +665,16 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 
     unsigned docCount;
     //printf("docCount:%u\n", docCount);
-    memcpy(&docCount, fp_sst+offset, sizeof(docCount));
+    memcpy(&docCount, fp_sst[cid]+offset, sizeof(docCount));
 
-    //printf("docCount:%u\n", docCount);
+    printf("docCount:%u\n", docCount);
     offset += sizeof (unsigned);
 
     bufferP = (PostIt *)malloc(sizeof(PostIt)*docCount);
     //printf("Allocated buffer for %d postings\n", sizeof(PostIt)*docCount);
 
-    memcpy(bufferP, fp_sst+offset, sizeof(PostIt)*docCount);
-    *bufferi = sizeof(PostIt)*docCount;
+    memcpy(bufferP, fp_sst[cid]+offset, sizeof(PostIt)*docCount);
+    //*bufferi = sizeof(PostIt)*docCount;
 
 //    PostIt *_in_core = (PostIt *) (fp + offset);
 //    for (int i=0; i<docCount; i++) {
@@ -663,13 +737,14 @@ void *doterms(void *arg) {
         int bufferi = 0;
 
         PostIt *bufferResult;
+        char *bufferResult2;
 
         #ifdef SST
         bufferResult = query_term_sst(terms[d], &bufferi, cid);
         #elif PM_TABLE
         bufferResult = query_term_pm(terms[d], &bufferi, cid);
         #else
-        bufferResult = query_term_stock(terms[d], &bufferi, cid);
+        bufferResult2 = query_term_stock2(terms[d], &bufferi, cid);
         #endif
 
         if (bufferi > 0) {
@@ -718,6 +793,8 @@ int main(int argc, char *argv[]) {
     initialize_timer(&timer_main, 0, "main");
     initialize_timer(&timer_alloc_table, 0, "alloc_table");
     initialize_timer(&timer_doterms, 0, "doterms");
+    initialize_timer(&timer_lookup_word, 0, "lookup");
+    initialize_timer(&timer_copy_postings, 0, "copy");
     timer_sync = (struct timer*) malloc(ncore * sizeof(struct timer));
     timer_query = (struct timer*) malloc(ncore * sizeof(struct timer));
     for(int core=0; core<ncore; core++) {
@@ -766,15 +843,15 @@ int main(int argc, char *argv[]) {
 
     #ifdef PM_TABLE
         char psinfo_path[100];
-        sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+        sprintf(psinfo_path, "%s/index-tab-b128/ps/psinfo", pmemdir);
         size_t psinfo_mapped_len;
 
         char buckets_path[100];
-        sprintf(buckets_path, "%s/ps/buckets", pmemdir);
+        sprintf(buckets_path, "%s/index-tab-b128/ps/buckets", pmemdir);
         size_t buckets_mapped_len;
 
         char blocks_path[100];
-        sprintf(blocks_path, "%s/ps/blocks", pmemdir);
+        sprintf(blocks_path, "%s/index-tab-b128/ps/blocks", pmemdir);
         size_t blocks_mapped_len;
 
         int is_pmem;
@@ -788,10 +865,10 @@ int main(int argc, char *argv[]) {
         ps.blocks = (struct Block *)mmap (0, sizeof(struct Block) * ps.psinfo->maxblocks, PROT_READ, MAP_SHARED, blocks_file, 0);
     #elif SST
         char psinfo_path[100];
-        sprintf(psinfo_path, "%s/ps/psinfo", pmemdir);
+        sprintf(psinfo_path, "%s/index-sst/ps/psinfo", pmemdir);
         size_t psinfo_mapped_len;
         char sst_path[100];
-        sprintf(sst_path, "%s/sst", pmemdir);
+        sprintf(sst_path, "%s/index-sst/sst", pmemdir);
         size_t sst_mapped_len;
 
         int is_pmem;
@@ -803,7 +880,7 @@ int main(int argc, char *argv[]) {
         long long sst_size = BLOCKSIZE * sizeof(PostIt) * psinfo->blocki + psinfo->bucketi*sizeof(unsigned);
 
         char w2p_path[MAXFILENAME];
-        sprintf(w2p_path, "/dev/shm/w2p.db");
+        sprintf(w2p_path, "/dev/shm/shb/w2p.db");
 
         for (int i = 0; i < ncore; i++) {
             fp_sst[i] = (char *)mmap (0, sst_size, PROT_READ, MAP_SHARED, sst_file, 0);
@@ -817,7 +894,7 @@ int main(int argc, char *argv[]) {
 
     #else
         char filename[100];
-        sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
+        sprintf(filename, "%s0/%s-f-0", "/mnt/nvme-1.0/shb/large/db/db", "ind");
 
 
         if (!fp_stock) {
@@ -827,10 +904,12 @@ int main(int argc, char *argv[]) {
         }
 
         char dbname[100];
-        sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/anson/stock/large/db/db", "ind");
+        sprintf(dbname, "%s0/%s-w2p.db-0", "/mnt/nvme-1.0/shb/large/db/db", "ind");
 
+	word_ptr = (char**) malloc(ncore * sizeof(char*)); //qe_term_stock2
         for (int i = 0; i < ncore; i++) {
-            fp_stock[i] = fopen(filename,"r");
+            fp_stock[i] = open(filename,O_RDONLY,0640);
+	    word_ptr[i] = (char *) mmap (0, 17179869184, PROT_READ, MAP_SHARED, fp_stock[i], 0); //qe_term_stock2
             int err = db_create(&w2p_db[i], NULL, 0);
             assert(!err);
             err = w2p_db[i]->open(w2p_db[i], NULL, dbname, NULL, DB_BTREE, DB_RDONLY,  0666);
@@ -899,7 +978,7 @@ int main(int argc, char *argv[]) {
 //        w2p_db->close(w2p_db,0);
     for (int i = 0; i < ncore; i++) {
         w2p_db[i]->close(w2p_db[i],0);
-        fclose(fp_stock[i]);
+        //fclose(fp_stock[i]);
     }
 
 
@@ -911,6 +990,8 @@ int main(int argc, char *argv[]) {
     end_timer(&timer_main,0);
     print_uni_timer(&timer_main);
     print_uni_timer(&timer_alloc_table);
+    print_uni_timer(&timer_lookup_word);
+    print_uni_timer(&timer_copy_postings);
     printf("doterms: %.6f\n", get_uni_timer(&timer_doterms)/repeats);
 
     double syncTime = 0;
