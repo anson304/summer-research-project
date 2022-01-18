@@ -78,6 +78,14 @@ pmemkv_db *n2f_db = NULL;
 
 #define REPEATS 10
 
+struct query {
+	char word1[MAXWORDLENGTH];
+	char word2[MAXWORDLENGTH];
+	char op;
+};
+
+struct query queries[NTERMS];
+
 char terms[NTERMS][MAXWORDLENGTH];
 double queryTimeArr[REPEATS][NTERMS];
 
@@ -401,6 +409,17 @@ int lookup(struct pass0_state *ps, char *word) {
     exit(1);
 }
 
+
+char* query_2term_stock_and(char *term1, char* term2, int *bufferi, int cid) {
+	char c;
+	return &c;
+}
+
+char* query_2term_stock_or(char *term1, char* term2, int *bufferi, int cid) {
+	char c;
+	return &c;
+}
+
 char* query_term_stock(char *term, int *bufferi, int cid) {
 
     char *bufferP;
@@ -455,7 +474,42 @@ char* query_term_stock(char *term, int *bufferi, int cid) {
 
 }
 
+PostIt* query_2term_pm_or(char *term1, char* term2, int *bufferi, int cid) {
+	PostIt p;
+	return &p;
+}
 
+Bucket *get_bucket(char *term, int cid) {
+    struct Bucket *bu;
+    int MAX_VAL_LEN = 64;
+
+#ifdef W2B_CMAP_PM
+    int s = pmemkv_exists(w2b_db, term, strlen(term)); // check if key exists
+    if (s == PMEMKV_STATUS_OK) {
+        //printf("word found in cmap\n");
+        char val[MAX_VAL_LEN];
+        s = pmemkv_get_copy(w2b_db, term, strlen(term), val, MAX_VAL_LEN, NULL);
+        ASSERT(s == PMEMKV_STATUS_OK);
+        //printf("index:%s\n", val);
+        bu = &ps.buckets[atoi(val)];
+    } else if (s == PMEMKV_STATUS_NOT_FOUND) {
+        //printf("word not found in cmap\n");
+        return NULL;
+    } else {
+        printf("error with cmap\n");
+        exit(1);
+    }
+
+#else
+    bu = &ps.buckets[lookup(&ps, term)];
+#endif
+    return bu;
+}
+
+PostIt* query_2term_pm_and(char *term1, char* term2, int *bufferi, int cid) {
+	PostIt p;
+	return &p;
+}
 
 PostIt* query_term_pm(char *term, int *bufferi, int cid) {
     //printf("New query: %s, len: %d\n", term, strlen(term));
@@ -525,6 +579,151 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
 }
 
 
+PostIt* query_2term_sst_or(char *term1, char *term2, int *bufferi, int cid) {
+
+    int size_t1, size_t2;	
+
+    PostIt *p1 = query_term_sst(term1, &size_t1, cid);
+    PostIt *p2 = query_term_sst(term2, &size_t2, cid);
+
+    *bufferi = size_t1 + size_t2;
+
+    if (*bufferi == 0) {
+	    return NULL;
+    }
+
+    PostIt *p3 = (PostIt*) malloc(sizeof(PostIt) * (size_t1 + size_t2));
+
+    if (p1[0] > p2[size_t2-1]) {
+	for (int i=0; i<(size_t1 + size_t2); i++) 
+	{
+            if (i < size_t2) p3[i] = p2[i];
+            else p3[i] = p1[i];
+    	}
+    }
+    else if (p2[0] > p1[size_t1-1]) {
+	for (int i=0; i<(size_t1 + size_t2); i++) 
+	{
+            if (i < size_t1) p3[i] = p1[i];
+            else p3[i] = p2[i];
+    	}
+    }
+    else {
+	    int t1 = 0;
+	    int t2 = 0;
+	    int d  = 0;
+	    while (t1<size_t1 && t2<size_t2)
+	    {
+		    if (p1[t1] < p2[t2]) 
+		    {
+			    p3[d] = p1[t1];
+			    t1++;
+			    d++;
+		    }
+		    else if (p2[t2]<p1[t1])
+		    {
+			    p3[d] = p2[t2];
+			    t2++;
+			    d++
+		    }
+		    else
+		    {
+			    p3[d] = p1[t1];
+			    t1++;
+			    t2++;
+			    d++;
+		    }
+	    }
+	    while(t1<size_t1) 
+	    {
+		    p3[d] = p1[t1];
+		    t1++;
+		    d++;
+	    }
+	    while(t2<size_t2) 
+	    {
+		    p3[d] = p2[t2];
+		    t2++;
+		    d++;
+	    }
+    }
+
+    *bufferi = d;
+
+    return p3;
+}
+
+unsigned long long get_offset(char *term, int cid) {
+
+    string w = string(term);
+    unsigned long long offset;
+    DBT key, data;
+    bzero(&key,sizeof(key));
+    bzero(&data,sizeof(data));
+    key.data = (void *)w.c_str();
+    key.size = w.size() + 1;
+    data.data = &offset;
+    data.size = sizeof(offset);
+
+    if ((w2p_db[cid]->get(w2p_db[cid], NULL, &key, &data, 0) != 0) || (data.size != sizeof(offset))) {
+        return NULL;
+    }
+    memcpy(&offset, data.data, sizeof(offset));
+    return offset;
+}
+
+PostIt* query_2term_sst_and(char *term1, char *term2, int *bufferi, int cid) {
+
+    string w1 = string(term1);
+    string w2 = string(term2);
+
+    unsigned long long offset1 = get_offset(term1, cid);
+    unsigned long long offset2 = get_offset(term2, cid);
+
+
+    if (offset1 == NULL || offset2 == NULL) {
+	    *bufferi = 0;
+	    return NULL;
+    }
+
+    PostIt *bufferP1;
+    PostIt *bufferP2;
+
+    unsigned doc_count1, doc_count2;
+    memcpy(&doc_count1, fp_sst[cid]+offset1, sizeof(doc_count1));
+    memcpy(&doc_count2, fp_sst[cid]+offset2, sizeof(doc_count2));
+    offset1 += sizeof (unsigned);
+    offset2 += sizeof (unsigned);
+
+    bufferP1 = (PostIt *) offset1;
+    bufferP2 = (PostIt *) offset2;
+
+    int k1 = 0; 
+    int k2 = 0; 
+    int match_ctr = 0;
+
+    int min = doc_count1;
+
+    if (doc_count1 < doc_count2) min = doc_count1;
+    else min = doc_count2;
+
+    PostIt *matches = (PostIt*) malloc(sizeof(PostIt) * min);
+
+    while(k1 < doc_count1 && k2 < doc_count2) {
+	    if (bufferP1[k1]->dn == bufferP2[k2]->dn)
+		    matches[match_ctr] = bufferP1[k1]->dn;
+	    else if (bufferP1[k1]->dn < bufferP2[k2]->dn) {
+		    k1 += 1;
+		    bufferP1 += 1
+	    } 
+	    else {
+		    k2 += 1;
+		    bufferP2 += 1;
+	    }
+    }
+    *bufferi = match_ctr;
+    return matches;
+}
 
 
 PostIt* query_term_sst(char *term, int *bufferi, int cid) {
@@ -545,8 +744,6 @@ PostIt* query_term_sst(char *term, int *bufferi, int cid) {
 #ifdef DEBUG
     printf("New query: %s, len: %d\n", term, strlen(term));
 #endif
-    struct Bucket *bu;
-    struct Block *bl;
     PostIt *bufferP;
     PostIt *infop;
     int MAX_VAL_LEN = 64;
@@ -648,17 +845,23 @@ void *doterms(void *arg) {
         char *bufferResult2;
 
         #ifdef SST
-        bufferResult = query_term_sst(terms[d], &bufferi, cid);
+        if (queries[d].op = NULL) bufferResult = query_term_sst(queries[d].word1, &bufferi, cid);
+        if (queries[d].op = '|')  bufferResult = query_2term_sst_or(queries[d].word1, queries[d].word2, &bufferi, cid);
+        if (queries[d].op = '^')  bufferResult = query_2term_sst_and(queries[d].word1, queries[d].word2, &bufferi, cid);
         if (bufferi > 0) {
             free (bufferResult);
         }
         #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d], &bufferi, cid);
+        if (queries[d].op = NULL) bufferResult = query_term_pm(queries[d].word1, &bufferi, cid);
+        if (queries[d].op = '|')  bufferResult = query_2term_pm_or(queries[d].word1, queries[d].word2, &bufferi, cid);
+        if (queries[d].op = '^')  bufferResult = query_2term_pm_and(queries[d].word1, queries[d].word2, &bufferi, cid);
         if (bufferi > 0) {
             free (bufferResult);
         }
         #else
-        bufferResult2 = query_term_stock(terms[d], &bufferi, cid);
+        bufferResult2 = query_term_stock(queries[d].word1, &bufferi, cid);
+        bufferResult2 = query_2term_stock_or(queries[d].word1, queries[d].word2, &bufferi, cid);
+        bufferResult2 = query_2term_stock_and(queries[d].word1, queries[d].word2, &bufferi, cid);
         if (bufferi > 0) {
             free (bufferResult2);
         }
@@ -747,7 +950,9 @@ int main(int argc, char *argv[]) {
     }
 
     pthread_mutex_init(&input_lock, NULL);
+ 
 
+    #if 0 // read query terms from file
     while (fgets(terms[max_term], MAXWORDLENGTH, stdin) != NULL) {
         assert(strlen(terms[max_term]) < MAXWORDLENGTH);
         assert(terms[max_term][strlen(terms[max_term])-1] == '\n');
@@ -758,6 +963,37 @@ int main(int argc, char *argv[]) {
         max_term++;
         assert(max_term < NTERMS);
     }
+    #endif
+
+    char buf[MAXWORDLENGTH] = "",
+        *delim = " \n";
+    int count = 0;
+    int i =0;
+
+    while (fgets (buf, MAXWORDLENGTH, stdin) != NULL) {  /* read one line from file */
+	count = 0;
+    	/* tokenize line with strtok */
+    	for (char *p = strtok (buf, delim); p; p = strtok (NULL, delim)) {
+        	//printf ("%s\n", p);
+		if (count == 0) {
+			strcpy(queries[i].word1, p); 
+		}	
+		if (count == 1) {
+			strcpy(queries[i].word2, p); 
+		}
+		if (count == 2) {
+			queries[i].op = *p;
+		}
+		count++;
+	}
+        //printf("%s  %s  %c \n", queries[i].word1, queries[i].word2, queries[i].operator);
+	i++;
+    }
+
+    for (int j=0; j<10; j++) {
+	    printf("%s  %s  %c \n", queries[j].word1, queries[j].word2, queries[j].op);
+    }
+
 
 #ifdef TIMER
     start_timer(&timer_alloc_table, 0);
@@ -933,26 +1169,6 @@ int main(int argc, char *argv[]) {
 //    printf("doterms avg: %.6f\n", get_uni_timer(&timer_doterms)/REPEATS);
 //    print_uni_timer(&timer_doterms_last);
 //
-//    double syncTime = 0;
-//
-//    for (int i=0; i<ncore; i++) {
-//        syncTime += get_timer(timer_sync,i);
-//    }
-//    syncTime = syncTime/REPEATS;
-//    printf("sync: %.6f\n", syncTime);
-//
-//    //sort array
-//    for (int r=0; r<REPEATS; r++) {
-//        qsort(queryTimeArr[r], max_term, sizeof(double), cmpfunc);
-//    }
-//    double tailLatSum = 0.0;
-//
-//    for (int r=0; r<REPEATS; r++) {
-//        tailLatSum += queryTimeArr[r][max_term-max_term/100-1];
-//    }
-//    printf("tail latency avg: %.6f\n", tailLatSum/REPEATS);
-//    printf("tail latency last: %.6f\n", queryTimeArr[REPEATS-1][max_term-max_term/100-1]);
-
 
     printf("doterms avg, doterms last, sync, tail latency avg, tail latency last:\n");
     printf("%.6f\n", get_uni_timer(&timer_doterms)/REPEATS);
