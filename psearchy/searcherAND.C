@@ -632,12 +632,12 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
         PostIt p1 = *(bufferResult+i);
         PostIt p2 = *(bufferResult2+j);
         if (p1.dn == p2.dn) {
-            if (doci > 0 && p1.dn != (DID) *(bufferD + doci-1)) {
+            if (*doci > 0 && p1.dn != *(bufferD + *doci-1)) {
                 i++;
                 j++;
             } else {
-                (DID) *(bufferD + doci) = p1.dn;
-                doci++;
+                *(bufferD + *doci) = p1.dn;
+                *doci++;
                 i++;
                 j++;
             }
@@ -826,8 +826,8 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
-            assert(terms[max_term][i][strlen(terms[max_term])-1] == '\n');
-            terms[max_term][i][strlen(terms[max_term])-1] = '\0';
+            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
+            terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
 
             for (int j=0; j < strlen(terms[max_term][i]); j++) {
                 terms[max_term][i][j] = tolower(terms[max_term][i][j]);
