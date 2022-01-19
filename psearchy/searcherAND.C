@@ -1,7 +1,7 @@
 
 #define LINUX
 #define TIMER
-//#define DEBUG
+#define DEBUG
 
 #include <libpmemkv.h>
 #include <libpmem.h>
