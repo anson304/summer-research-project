@@ -632,7 +632,7 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
     while (i<bufferi && j<bufferj) {
         PostIt p1 = *(bufferResult+i);
         PostIt p2 = *(bufferResult2+j);
-        printf("p1: %lld, p2: %lld", p1.dn, p2.dn)
+        printf("p1: %lld, p2: %lld", p1.dn, p2.dn);
         if (p1.dn == p2.dn) {
             if (*doci > 0 && p1.dn != *(bufferD + *doci-1)) {
                 i++;
