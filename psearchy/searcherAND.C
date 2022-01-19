@@ -401,7 +401,7 @@ int lookup(struct pass0_state *ps, char *word) {
     exit(1);
 }
 
-char* query_term_stock(char *term, int *bufferi, int cid) {
+PostIt* query_term_stock(char *term, int *bufferi, int cid) {
 
     char *bufferP;
     PostIt *infop;
@@ -451,7 +451,7 @@ char* query_term_stock(char *term, int *bufferi, int cid) {
     #ifdef TIMER
     end_timer(timer_query, cid);
     #endif
-    return bufferP;
+    return (PostIt*)bufferP;
 
 }
 
@@ -675,24 +675,26 @@ void *doterms(void *arg) {
 
         PostIt *bufferResult;
         PostIt *bufferResult2;
-        char *bufferStock;
-        char *bufferStock2;
+//        char *bufferStock;
+//        char *bufferStock2;
         int doci = 0;
         DID *bufferD;
 
         #ifdef SST
         bufferResult = query_term_sst(terms[d][0], &bufferi, cid);
         bufferResult2 = query_term_sst(terms[d][1], &bufferj, cid);
-        bufferD = get_intersect(&doci, bufferi, bufferResult, bufferj, bufferResult2);
-        if (bufferi > 0) {
-            free (bufferResult);
-        }
-        if (bufferj > 0) {
-            free (bufferResult2);
-        }
+
         #elif PM_TABLE
         bufferResult = query_term_pm(terms[d][0], &bufferi, cid);
         bufferResult2 = query_term_pm(terms[d][1], &bufferi, cid);
+
+        #else
+        bufferStock = query_term_stock(terms[d][0], &bufferi, cid);
+        bufferStock2 = query_term_stock(terms[d][1], &bufferj, cid);
+
+
+        #endif
+
         bufferD = get_intersect(&doci, bufferi, bufferResult, bufferj, bufferResult2);
         if (bufferi > 0) {
             free (bufferResult);
@@ -700,18 +702,6 @@ void *doterms(void *arg) {
         if (bufferj > 0) {
             free (bufferResult2);
         }
-        #else
-
-        bufferStock = query_term_stock(terms[d][0], &bufferi, cid);
-        bufferStock2 = query_term_stock(terms[d][1], &bufferj, cid);
-        bufferD = get_intersect(&doci, bufferi, bufferStock, bufferj, bufferStock2);
-        if (bufferi > 0) {
-            free (bufferStock);
-        }
-        if (bufferj > 0) {
-            free (bufferStock2);
-        }
-        #endif
 
 
         printf("Intersection of %s and %s:\n", terms[d][0], terms[d][1]);
