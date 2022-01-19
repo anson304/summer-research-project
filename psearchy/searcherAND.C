@@ -807,29 +807,29 @@ int main(int argc, char *argv[]) {
 
     while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
         //printf("Reading line: %s\n",lines[max_term]);
-//        char *term1 = strtok(lines[max_term], ",");
-//        char *term2 = strtok(NULL, ",");
+        char *term1 = strtok(lines[max_term], ",");
+        char *term2 = strtok(NULL, ",");
 
         printf("t1 and t2\n");
 
-//        for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
-//            terms[max_term][0][i] = term1[i];
-//        }
-//        for (int i=0; i<sizeof(term2)/sizeof(char)+1;i++) {
-//            terms[max_term][1][i] = term2[i];
-//        }
-//
-//        printf("check\n");
-//
-//        for (int i = 0; i<2; i++) {
-//            assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
-//            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
-//            terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
-//
-//            for (int j=0; j < strlen(terms[max_term][i]); j++) {
-//                terms[max_term][i][j] = tolower(terms[max_term][i][j]);
-//            }
-//        }
+        for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
+            terms[max_term][0][i] = term1[i];
+        }
+        for (int i=0; i<sizeof(term2)/sizeof(char)+1;i++) {
+            terms[max_term][1][i] = term2[i];
+        }
+
+        printf("check\n");
+
+        for (int i = 0; i<2; i++) {
+            assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
+            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
+            terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
+
+            for (int j=0; j < strlen(terms[max_term][i]); j++) {
+                terms[max_term][i][j] = tolower(terms[max_term][i][j]);
+            }
+        }
 
         max_term++;
         assert(max_term < NTERMS);
