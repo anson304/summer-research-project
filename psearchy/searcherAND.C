@@ -824,7 +824,7 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
-            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
+            //assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
             terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
 
             for (int j=0; j < strlen(terms[max_term][i]); j++) {
