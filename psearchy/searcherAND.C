@@ -625,7 +625,7 @@ int get_kv_callback(const char *k, size_t kb, const char *value, size_t value_by
 
 DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, PostIt *bufferResult2) {
 
-    bufferD = (DID *)malloc(sizeof(DID)*(bufferi+bufferj));
+    DID *bufferD = (DID *)malloc(sizeof(DID)*(bufferi+bufferj));
     int i = 0;
     int j = 0;
     while (i<bufferi && j<bufferj) {
@@ -738,53 +738,6 @@ void *doterms(void *arg) {
 
 }
 
-char** str_split(char* a_str, const char a_delim)
-{
-    char** result    = 0;
-    size_t count     = 0;
-    char* tmp        = a_str;
-    char* last_comma = 0;
-    char delim[2];
-    delim[0] = a_delim;
-    delim[1] = 0;
-
-    /* Count how many elements will be extracted. */
-    while (*tmp)
-    {
-        if (a_delim == *tmp)
-        {
-            count++;
-            last_comma = tmp;
-        }
-        tmp++;
-    }
-
-    /* Add space for trailing token. */
-    count += last_comma < (a_str + strlen(a_str) - 1);
-
-    /* Add space for terminating null string so caller
-       knows where the list of returned strings ends. */
-    count++;
-
-    result = malloc(sizeof(char*) * count);
-
-    if (result)
-    {
-        size_t idx  = 0;
-        char* token = strtok(a_str, delim);
-
-        while (token)
-        {
-            assert(idx < count);
-            *(result + idx++) = strdup(token);
-            token = strtok(0, delim);
-        }
-        assert(idx == count - 1);
-        *(result + idx) = 0;
-    }
-
-    return result;
-}
 
 int cmpfunc (const void * a, const void * b)
 {
@@ -857,20 +810,12 @@ int main(int argc, char *argv[]) {
 
     pthread_mutex_init(&input_lock, NULL);
 
-    char[] next_line = new char[MAXWORDLENGTH*2+1];
 
-    while (fgets(next_line, MAXWORDLENGTH*2+1, stdin) != NULL) {
+    char lines[NTERMS][MAXWORDLENGTH*2+1];
+    while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
 
-        char** tokens;
-
-        tokens = str_split(next_line, ',');
-        if (tokens) {
-            for (int i = 0; *(tokens + i); i++) {
-                terms[max_term][i] = *(tokens + i);
-                free(*(tokens + i));
-            }
-            free(tokens);
-        }
+        terms[max_term][0] = strtok(lines[max_term], ",");
+        terms[max_term][1] = strtok(NULL, ",");
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
