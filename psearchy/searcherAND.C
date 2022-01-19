@@ -817,7 +817,7 @@ int main(int argc, char *argv[]) {
             terms[max_term][1][i] = term2[i];
         }
 
-        printf("t1:%s and t2:%s\n",terms[max_term][0][max_term], terms[max_term][1][max_term]);
+        printf("t1:%s and t2:%s\n",terms[max_term][0], terms[max_term][1]);
 
         printf("check\n");
 
