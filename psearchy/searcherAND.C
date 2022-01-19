@@ -79,6 +79,7 @@ pmemkv_db *n2f_db = NULL;
 #define REPEATS 10
 
 char terms[NTERMS][2][MAXWORDLENGTH];
+char lines[NTERMS][MAXWORDLENGTH*2+1];
 double queryTimeArr[REPEATS][NTERMS];
 
 
@@ -803,7 +804,7 @@ int main(int argc, char *argv[]) {
 
     printf("Reading terms\n");
 
-    char lines[NTERMS][MAXWORDLENGTH*2+1];
+
     while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
         //printf("Reading line: %s\n",lines[max_term]);
 //        char *term1 = strtok(lines[max_term], ",");
