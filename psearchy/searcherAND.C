@@ -810,16 +810,17 @@ int main(int argc, char *argv[]) {
         char *term1 = strtok(lines[max_term], ",");
         char *term2 = strtok(NULL, ",");
 
-        for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
-            terms[max_term][0][i] = term1[i];
-        }
-        for (int i=0; i<sizeof(term2)/sizeof(char)+1;i++) {
-            terms[max_term][1][i] = term2[i];
-        }
+//        for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
+//            terms[max_term][0][i] = term1[i];
+//        }
+//        for (int i=0; i<sizeof(term2)/sizeof(char)+1;i++) {
+//            terms[max_term][1][i] = term2[i];
+//        }
+
+        strcpy(term1, terms[max_term][0]);
+        strcpy(term2, terms[max_term][0]);
 
         printf("t1:%s and t2:%s\n",terms[max_term][0], terms[max_term][1]);
-
-        printf("check\n");
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
