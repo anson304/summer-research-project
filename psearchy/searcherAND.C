@@ -632,11 +632,11 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
         PostIt p1 = *(bufferResult+i);
         PostIt p2 = *(bufferResult2+j);
         if (p1.dn == p2.dn) {
-            if (doci > 0 && p1.dn != *(bufferD + doci-1)) {
+            if (doci > 0 && p1.dn != (DID) *(bufferD + doci-1)) {
                 i++;
                 j++;
             } else {
-                *(bufferD + doci) = p1.dn;
+                (DID) *(bufferD + doci) = p1.dn;
                 doci++;
                 i++;
                 j++;
@@ -814,8 +814,15 @@ int main(int argc, char *argv[]) {
     char lines[NTERMS][MAXWORDLENGTH*2+1];
     while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
 
-        terms[max_term][0] = strtok(lines[max_term], ",");
-        terms[max_term][1] = strtok(NULL, ",");
+        char *term1 = strtok(lines[max_term], ",");
+        char *term2 = strtok(NULL, ",");
+
+        for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
+            terms[max_term][0][i] = term1[i];
+        }
+        for (int i=0; i<sizeof(term2)/sizeof(char)+1;i++) {
+            terms[max_term][1][i] = term2[i];
+        }
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
