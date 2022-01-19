@@ -810,6 +810,7 @@ int main(int argc, char *argv[]) {
 
     pthread_mutex_init(&input_lock, NULL);
 
+    printf("Reading terms\n");
 
     char lines[NTERMS][MAXWORDLENGTH*2+1];
     while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
@@ -817,12 +818,16 @@ int main(int argc, char *argv[]) {
         char *term1 = strtok(lines[max_term], ",");
         char *term2 = strtok(NULL, ",");
 
+        printf("t1 and t2\n");
+
         for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
             terms[max_term][0][i] = term1[i];
         }
         for (int i=0; i<sizeof(term2)/sizeof(char)+1;i++) {
             terms[max_term][1][i] = term2[i];
         }
+
+        printf("check\n");
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
