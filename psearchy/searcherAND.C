@@ -818,7 +818,7 @@ int main(int argc, char *argv[]) {
 //        }
 
         strcpy(term1, terms[max_term][0]);
-        strcpy(term2, terms[max_term][0]);
+        strcpy(term2, terms[max_term][1]);
 
         printf("t1:%s and t2:%s\n",terms[max_term][0], terms[max_term][1]);
 
