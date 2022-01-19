@@ -702,8 +702,8 @@ void *doterms(void *arg) {
         }
         #else
 
-        bufferStock = query_term_stock(terms[d], &bufferi, cid);
-        bufferStock2 = query_term_stock(terms[d], &bufferj, cid);
+        bufferStock = query_term_stock(terms[d][0], &bufferi, cid);
+        bufferStock2 = query_term_stock(terms[d][1], &bufferj, cid);
         bufferD = get_intersect(&doci, bufferi, bufferStock, bufferj, bufferStock2);
         if (bufferi > 0) {
             free (bufferStock);
