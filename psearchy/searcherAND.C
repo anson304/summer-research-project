@@ -824,15 +824,15 @@ int main(int argc, char *argv[]) {
 
         printf("t1:%s and t2:%s\n",terms[max_term][0], terms[max_term][1]);
 
-        for (int i = 0; i<2; i++) {
-            assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
-            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
-            terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
-
-            for (int j=0; j < strlen(terms[max_term][i]); j++) {
-                terms[max_term][i][j] = tolower(terms[max_term][i][j]);
-            }
-        }
+//        for (int i = 0; i<2; i++) {
+//            assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
+//            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
+//            terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
+//
+//            for (int j=0; j < strlen(terms[max_term][i]); j++) {
+//                terms[max_term][i][j] = tolower(terms[max_term][i][j]);
+//            }
+//        }
 
         max_term++;
         assert(max_term < NTERMS);
