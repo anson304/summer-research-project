@@ -805,7 +805,7 @@ int main(int argc, char *argv[]) {
 
     char lines[NTERMS][MAXWORDLENGTH*2+1];
     while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
-        printf("Reading line: %s\n",lines[max_term]);
+        //printf("Reading line: %s\n",lines[max_term]);
 //        char *term1 = strtok(lines[max_term], ",");
 //        char *term2 = strtok(NULL, ",");
 
