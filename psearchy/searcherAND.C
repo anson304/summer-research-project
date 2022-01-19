@@ -804,13 +804,13 @@ int main(int argc, char *argv[]) {
     printf("Reading terms\n");
 
     char lines[NTERMS][MAXWORDLENGTH*2+1];
-//    while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
-//
-//        char *term1 = strtok(lines[max_term], ",");
-//        char *term2 = strtok(NULL, ",");
-//
-//        printf("t1 and t2\n");
-//
+    while (fgets(lines[max_term], MAXWORDLENGTH*2+1, stdin) != NULL) {
+
+        char *term1 = strtok(lines[max_term], ",");
+        char *term2 = strtok(NULL, ",");
+
+        printf("t1 and t2\n");
+
 //        for (int i=0; i<sizeof(term1)/sizeof(char)+1;i++) {
 //            terms[max_term][0][i] = term1[i];
 //        }
@@ -829,10 +829,10 @@ int main(int argc, char *argv[]) {
 //                terms[max_term][i][j] = tolower(terms[max_term][i][j]);
 //            }
 //        }
-//
-//        max_term++;
-//        assert(max_term < NTERMS);
-//    }
+
+        max_term++;
+        assert(max_term < NTERMS);
+    }
 
 #ifdef TIMER
     start_timer(&timer_alloc_table, 0);
