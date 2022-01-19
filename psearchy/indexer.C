@@ -235,7 +235,7 @@ static void sst(struct pass0_state *ps) {
     sprintf(sst_path, "%s/sst", pmemdir);
     int is_pmem;
     size_t sst_mapped_len;
-    long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps->psinfo->blocki + ps->psinfo->bucketi*sizeof(unsigned);
+    long long sst_size = BLOCKSIZE * sizeof(PostIt) * ps->psinfo->blocki + (ps->psinfo->bucketi * sizeof(unsigned));
 
     #ifdef TIMER
     start_timer(timer_sst,0);

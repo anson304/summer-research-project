@@ -474,9 +474,22 @@ char* query_term_stock(char *term, int *bufferi, int cid) {
 
 }
 
-PostIt* query_2term_pm_or(char *term1, char* term2, int *bufferi, int cid) {
-	PostIt p;
-	return &p;
+DID doc(PostIt p) {
+	return p.dn;
+}
+
+PostIt next(Block *bl, int *k) {
+	Block *b = bl;
+	if(*k == bl->n) {
+		if(bl->next != 0) {
+			b = &ps.blocks[bl->next];
+		}
+		*k = 0;
+		return b->p[*k];
+	} else {
+		*k++;
+		return b->p[*k];
+	}
 }
 
 Bucket *get_bucket(char *term, int cid) {
@@ -504,11 +517,6 @@ Bucket *get_bucket(char *term, int cid) {
     bu = &ps.buckets[lookup(&ps, term)];
 #endif
     return bu;
-}
-
-PostIt* query_2term_pm_and(char *term1, char* term2, int *bufferi, int cid) {
-	PostIt p;
-	return &p;
 }
 
 PostIt* query_term_pm(char *term, int *bufferi, int cid) {
@@ -578,71 +586,103 @@ PostIt* query_term_pm(char *term, int *bufferi, int cid) {
     return bufferP;
 }
 
+PostIt* query_2term_pm_or(char *term1, char* term2, int *bufferi, int cid) {
 
-PostIt* query_2term_sst_or(char *term1, char *term2, int *bufferi, int cid) {
+    unsigned doc_count1, doc_count2;
 
-    int size_t1, size_t2;	
+    Bucket *bu1 = get_bucket(term1, cid);
+    Bucket *bu2 = get_bucket(term2, cid);
 
-    PostIt *p1 = query_term_sst(term1, &size_t1, cid);
-    PostIt *p2 = query_term_sst(term2, &size_t2, cid);
+    struct Block *bl1 = &ps.blocks[bu1->b0];
+    struct Block *bl2 = &ps.blocks[bu2->b0];
 
-    *bufferi = size_t1 + size_t2;
+    struct Block *bn1 = &ps.blocks[bu1->bN];
+    struct Block *bn2 = &ps.blocks[bu2->bN];
+
+    doc_count1 = bu1->n;
+    doc_count2 = bu2->n;
+
+    unsigned sum = doc_count1 + doc_count2;
+
+    *bufferi = sum;
 
     if (*bufferi == 0) {
 	    return NULL;
     }
 
-    PostIt *p3 = (PostIt*) malloc(sizeof(PostIt) * (size_t1 + size_t2));
+    PostIt *p3 = (PostIt*) malloc(sizeof(PostIt) * (sum));
 
-    if (p1[0] > p2[size_t2-1]) {
-	for (int i=0; i<(size_t1 + size_t2); i++) 
+    if (doc_count1 == 0) {
+	    return query_term_pm(term2, bufferi, cid);
+    }
+
+    if (doc_count2 == 0) {
+	    return query_term_pm(term1, bufferi, cid);
+    }
+
+    int k1 = 0;
+    int k2 = 0;
+    int d  = 0;
+    if (doc(bl1->p[0]) > doc(bn2->p[bu2->n-1])) {
+	for (int i=0; i<sum; i++) 
 	{
-            if (i < size_t2) p3[i] = p2[i];
-            else p3[i] = p1[i];
+            if (i < doc_count2) {
+		p3[i] = next(bl2,&k2);
+	    }
+            else {
+		p3[i] = next(bl1,&k1);
+	    }
     	}
     }
-    else if (p2[0] > p1[size_t1-1]) {
-	for (int i=0; i<(size_t1 + size_t2); i++) 
+    else if (doc(bl2->p[0]) > doc(bn1->p[bu1->n-1])) {
+	for (int i=0; i<sum; i++) 
 	{
-            if (i < size_t1) p3[i] = p1[i];
-            else p3[i] = p2[i];
+            if (i < doc_count1) {
+		p3[i] = next(bl1,&k1);
+	    }
+            else {
+		p3[i] = next(bl2,&k2);
+	    }
     	}
     }
     else {
-	    int t1 = 0;
-	    int t2 = 0;
-	    int d  = 0;
-	    while (t1<size_t1 && t2<size_t2)
+	    PostIt p1, p2;
+	    int t1,t2 = 0;
+	    p1 = next(bl1,&k1);
+	    p2 = next(bl2,&k2);
+	    while (k1<doc_count1 && k2<doc_count2)
 	    {
-		    if (p1[t1] < p2[t2]) 
+		    if (doc(p1) < doc(p2)) 
 		    {
-			    p3[d] = p1[t1];
-			    t1++;
+			    p3[d] = p1;
+			    p1 = next(bl1,&k1);
 			    d++;
+			    t1++;
 		    }
-		    else if (p2[t2]<p1[t1])
+		    else if (doc(p2) < doc(p1))
 		    {
-			    p3[d] = p2[t2];
+			    p3[d] = p2;
+			    p2 = next(bl2,&k2);
+			    d++;
 			    t2++;
-			    d++
 		    }
 		    else
 		    {
-			    p3[d] = p1[t1];
-			    t1++;
-			    t2++;
+			    p3[d] = p1;
+			    p1 = next(bl1,&k1);
+			    p2 = next(bl2,&k2);
 			    d++;
 		    }
 	    }
-	    while(t1<size_t1) 
+	    while(t1<doc_count1) 
 	    {
-		    p3[d] = p1[t1];
+		    p3[d] = next(bl1,&k1);
 		    t1++;
 		    d++;
 	    }
-	    while(t2<size_t2) 
+	    while(t2<doc_count2) 
 	    {
-		    p3[d] = p2[t2];
+		    p3[d] = next(bl2,&k2);
 		    t2++;
 		    d++;
 	    }
@@ -651,6 +691,61 @@ PostIt* query_2term_sst_or(char *term1, char *term2, int *bufferi, int cid) {
     *bufferi = d;
 
     return p3;
+}
+
+PostIt* query_2term_pm_and(char *term1, char* term2, int *bufferi, int cid) {
+
+	Bucket *bu1 = get_bucket(term1, cid);
+	Bucket *bu2 = get_bucket(term2, cid);
+
+	if (bu1->used == 0 || bu1->used == 0) {
+		*bufferi = 0;
+		return NULL;
+	}
+
+    	struct Block *bl1 = &ps.blocks[bu1->b0];
+    	struct Block *bl2 = &ps.blocks[bu2->b0];
+
+	int doc_count1 = bu1->n;
+	int doc_count2 = bu2->n;
+
+    	int min = doc_count1;
+
+    	if (doc_count1 < doc_count2) min = doc_count1;
+    	else min = doc_count2;
+
+    	PostIt *matches = (PostIt*) malloc(sizeof(PostIt) * min);
+    	unsigned match_ctr = 0;
+
+	int k1 = 0;
+	int k2 = 0;
+	int t1 = 0;
+	int t2 = 0;
+	PostIt p1,p2;
+
+	p1 = next(bl1,&k1);
+	p2 = next(bl2,&k2);
+
+
+      	while(t1 < doc_count1 && t2 < doc_count2) {
+		if (doc(p1) == doc(p2)) {
+			matches[match_ctr] = p1;
+			match_ctr++;
+			p1 = next(bl1,&k1);
+			p2 = next(bl2,&k2);
+			t1++;
+			t2++;
+		} else if (doc(p1) < doc(p2)) {
+			t1++;
+			p1 = next(bl1,&k1);
+		} else {
+			t2++;
+			p2 = next(bl2,&k2);
+		}
+	}
+
+	*bufferi = match_ctr;
+	return matches;
 }
 
 unsigned long long get_offset(char *term, int cid) {
@@ -670,6 +765,118 @@ unsigned long long get_offset(char *term, int cid) {
     }
     memcpy(&offset, data.data, sizeof(offset));
     return offset;
+}
+
+
+
+PostIt* query_2term_sst_or(char *term1, char *term2, int *bufferi, int cid) {
+
+    unsigned doc_count1, doc_count2;
+
+    string w1 = string(term1);
+    string w2 = string(term2);
+
+    unsigned long long offset1 = get_offset(term1, cid);
+    unsigned long long offset2 = get_offset(term2, cid);
+
+
+    memcpy(&doc_count1, fp_sst[cid]+offset1, sizeof(doc_count1));
+    memcpy(&doc_count2, fp_sst[cid]+offset2, sizeof(doc_count2));
+    offset1 += sizeof (unsigned);
+    offset2 += sizeof (unsigned);
+
+    PostIt *p1; 
+    PostIt *p2; 
+
+    //PostIt *p1 = query_term_sst(term1, &size_t1, cid);
+    //PostIt *p2 = query_term_sst(term2, &size_t2, cid);
+    
+    p1 = (PostIt *) offset1;
+    p2 = (PostIt *) offset2;
+
+    unsigned sum = doc_count1 + doc_count2;
+
+    *bufferi = sum;
+
+    if (*bufferi == 0) {
+	    return NULL;
+    }
+
+    PostIt *p3 = (PostIt*) malloc(sizeof(PostIt) * (sum));
+
+    if (doc_count1 == 0) {
+	for (int i=0; i<doc_count2; i++) 
+	{
+            p3[i] = p2[i];
+    	}
+	return p3;
+    }
+
+    if (doc_count2 == 0) {
+	for (int i=0; i<doc_count1; i++) 
+	{
+            p3[i] = p1[i];
+    	}
+	return p3;
+    }
+
+    int t1 = 0;
+    int t2 = 0;
+    int d  = 0;
+    if (p1[0].dn > p2[doc_count2-1].dn) {
+	for (int i=0; i<(sum); i++) 
+	{
+            if (i < doc_count2) p3[i] = p2[i];
+            else p3[i] = p1[i];
+    	}
+    }
+    else if (p2[0].dn > p1[doc_count1-1].dn) {
+	for (int i=0; i<sum; i++) 
+	{
+            if (i < doc_count1) p3[i] = p1[i];
+            else p3[i] = p2[i];
+    	}
+    }
+    else {
+	    while (t1<doc_count1 && t2<doc_count2)
+	    {
+		    if (p1[t1].dn < p2[t2].dn) 
+		    {
+			    p3[d] = p1[t1];
+			    t1++;
+			    d++;
+		    }
+		    else if (p2[t2].dn<p1[t1].dn)
+		    {
+			    p3[d] = p2[t2];
+			    t2++;
+			    d++;
+		    }
+		    else
+		    {
+			    p3[d] = p1[t1];
+			    t1++;
+			    t2++;
+			    d++;
+		    }
+	    }
+	    while(t1<doc_count1) 
+	    {
+		    p3[d] = p1[t1];
+		    t1++;
+		    d++;
+	    }
+	    while(t2<doc_count2) 
+	    {
+		    p3[d] = p2[t2];
+		    t2++;
+		    d++;
+	    }
+    }
+
+    *bufferi = d;
+
+    return p3;
 }
 
 PostIt* query_2term_sst_and(char *term1, char *term2, int *bufferi, int cid) {
@@ -700,7 +907,6 @@ PostIt* query_2term_sst_and(char *term1, char *term2, int *bufferi, int cid) {
 
     int k1 = 0; 
     int k2 = 0; 
-    int match_ctr = 0;
 
     int min = doc_count1;
 
@@ -708,17 +914,20 @@ PostIt* query_2term_sst_and(char *term1, char *term2, int *bufferi, int cid) {
     else min = doc_count2;
 
     PostIt *matches = (PostIt*) malloc(sizeof(PostIt) * min);
+    unsigned match_ctr = 0;
 
     while(k1 < doc_count1 && k2 < doc_count2) {
-	    if (bufferP1[k1]->dn == bufferP2[k2]->dn)
-		    matches[match_ctr] = bufferP1[k1]->dn;
-	    else if (bufferP1[k1]->dn < bufferP2[k2]->dn) {
+	    if (bufferP1[k1].dn == bufferP2[k2].dn) {
+		    matches[match_ctr] = bufferP1[k1];
+		    match_ctr++;
+		    k1++;
+		    k2++;
+	    }
+	    else if (bufferP1[k1].dn < bufferP2[k2].dn) {
 		    k1 += 1;
-		    bufferP1 += 1
 	    } 
 	    else {
 		    k2 += 1;
-		    bufferP2 += 1;
 	    }
     }
     *bufferi = match_ctr;
@@ -1194,27 +1403,12 @@ int main(int argc, char *argv[]) {
     printf("%.6f\n", tailLatSum/REPEATS);
     printf("%.6f\n", queryTimeArr[REPEATS-1][max_term-max_term/100-1]);
 
-
-
-
-
-
-
-
-
     //print tail latency
 
 #endif
 
 exit(0);
 }
-
-
-
-
-
-
-
 
 float
 printrusage(int init)
