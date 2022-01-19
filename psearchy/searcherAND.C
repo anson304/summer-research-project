@@ -791,6 +791,7 @@ int main(int argc, char *argv[]) {
 #ifdef TIMER
     start_timer(&timer_main,0);
 #endif
+    printf("Start\n");
 
     Args *a = new Args(config);
     cpuseq = new int[ncore];
