@@ -817,8 +817,8 @@ int main(int argc, char *argv[]) {
 //            terms[max_term][1][i] = term2[i];
 //        }
 
-        strcpy(term1, terms[max_term][0]);
-        strcpy(term2, terms[max_term][1]);
+        strcpy(terms[max_term][0], term1);
+        strcpy(terms[max_term][1]), term2;
 
         printf("t1:%s and t2:%s\n",terms[max_term][0], terms[max_term][1]);
 
