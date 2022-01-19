@@ -820,12 +820,13 @@ int main(int argc, char *argv[]) {
         strcpy(terms[max_term][0], term1);
         strcpy(terms[max_term][1], term2);
 
+        terms[max_term][i][strlen(terms[max_term][0])-1] = '\n';
+
         printf("t1:%s and t2:%s\n",terms[max_term][0], terms[max_term][1]);
 
         for (int i = 0; i<2; i++) {
             assert(strlen(terms[max_term][i]) < MAXWORDLENGTH);
-            terms[max_term][i][strlen(terms[max_term][i])-1] = '\n';
-            //assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
+            assert(terms[max_term][i][strlen(terms[max_term][i])-1] == '\n');
             terms[max_term][i][strlen(terms[max_term][i])-1] = '\0';
 
             for (int j=0; j < strlen(terms[max_term][i]); j++) {
