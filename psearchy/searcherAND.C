@@ -625,7 +625,7 @@ int get_kv_callback(const char *k, size_t kb, const char *value, size_t value_by
 
 
 DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, PostIt *bufferResult2) {
-    printf("Get intersection\n")
+    printf("Get intersection\n");
     DID *bufferD = (DID *)malloc(sizeof(DID)*(bufferi+bufferj));
     int i = 0;
     int j = 0;
