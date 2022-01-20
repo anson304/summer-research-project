@@ -959,7 +959,7 @@ int main(int argc, char *argv[]) {
         #endif
             pthread_t *tha = new pthread_t[ncore];
             void *value;
-            shared->did = 0;
+            shared->did = 1;
 
             for(int i = 0; i < ncore; i++)
                 pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
