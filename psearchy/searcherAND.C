@@ -631,12 +631,12 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
     int i = 0;
     int j = 0;
     while (i<bufferi && j<bufferj) {
-        printf("doci %d", *doci);
+        //printf("doci %d", *doci);
         PostIt p1 = *(bufferResult+i);
         PostIt p2 = *(bufferResult2+j);
         //printf("p1: %lld, p2: %lld", p1.dn, p2.dn);
         if (p1.dn == p2.dn) {
-            printf("samedoc ");
+            //printf("samedoc ");
             if (*doci > 0 && p1.dn == *(bufferD + *doci-1)) {
                 i++;
                 j++;
