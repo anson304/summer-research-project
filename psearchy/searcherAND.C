@@ -637,7 +637,7 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
         //printf("p1: %lld, p2: %lld", p1.dn, p2.dn);
         if (p1.dn == p2.dn) {
             printf("samedoc ");
-            if (*doci > 0 && p1.dn != *(bufferD + *doci-1)) {
+            if (*doci > 0 && p1.dn == *(bufferD + *doci-1)) {
                 i++;
                 j++;
             } else {
