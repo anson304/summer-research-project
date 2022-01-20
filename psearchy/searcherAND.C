@@ -728,7 +728,7 @@ void *doterms(void *arg) {
 //        printf("Query time: ");
 
 //        print_timer(timer_query, cid);
-        queryTimeArr[currRepeat][d-1] = get_timer(timer_query, cid);
+        queryTimeArr[currRepeat][d] = get_timer(timer_query, cid);
         reset_Timer(timer_query, cid);
     }
     // pthread_mutex_unlock(&input_lock);
