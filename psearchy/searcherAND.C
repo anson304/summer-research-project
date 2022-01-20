@@ -711,8 +711,9 @@ void *doterms(void *arg) {
 
 
         printf("Intersection of %s and %s:\n", terms[d][0], terms[d][1]);
+        printf("doci %d\n", doci);
         for (int i=0; i < doci; i++) {
-            printf("%d,",(DID) *(bufferD+doci));
+            printf("%d,",(DID) *(bufferD+i));
         }
         printf("\n");
 
