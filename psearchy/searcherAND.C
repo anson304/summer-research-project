@@ -642,7 +642,7 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
                 j++;
             } else {
                 *(bufferD + *doci) = p1.dn;
-                *doci++;
+                ++*doci;
                 i++;
                 j++;
             }
