@@ -231,7 +231,7 @@ initshared(void)
             exit(-1);
         }
     }
-    shared->did = 0;
+    shared->did = 1;
     shared->first = 1;
 }
 
@@ -669,7 +669,7 @@ void *doterms(void *arg) {
         #ifdef TIMER
             start_timer(timer_sync, cid);
         #endif
-        long long d = atomic_add_return(1, &(shared->did));
+        long long d = atomic_add_return(0, &(shared->did));
         if (shared->did >= max_term)
             break;
         #ifdef TIMER
