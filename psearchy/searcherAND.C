@@ -231,7 +231,7 @@ initshared(void)
             exit(-1);
         }
     }
-    shared->did = 0;
+    shared->did = 1;
     shared->first = 1;
 }
 
