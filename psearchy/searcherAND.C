@@ -652,6 +652,7 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
             j++;
         }
     }
+    printf("doci %d", *doci);
     return bufferD;
 }
 
