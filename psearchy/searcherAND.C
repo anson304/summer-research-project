@@ -669,7 +669,7 @@ void *doterms(void *arg) {
         #ifdef TIMER
             start_timer(timer_sync, cid);
         #endif
-        long long d = atomic_add_return(0, &(shared->did));
+        long long d = atomic_add_return(1, &(shared->did));
         if (shared->did >= max_term)
             break;
         #ifdef TIMER
@@ -687,16 +687,16 @@ void *doterms(void *arg) {
         DID *bufferD;
 
         #ifdef SST
-        bufferResult = query_term_sst(terms[d][0], &bufferi, cid);
-        bufferResult2 = query_term_sst(terms[d][1], &bufferj, cid);
+        bufferResult = query_term_sst(terms[d-1][0], &bufferi, cid);
+        bufferResult2 = query_term_sst(terms[d-1][1], &bufferj, cid);
 
         #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d][0], &bufferi, cid);
-        bufferResult2 = query_term_pm(terms[d][1], &bufferi, cid);
+        bufferResult = query_term_pm(terms[d-1][0], &bufferi, cid);
+        bufferResult2 = query_term_pm(terms[d-1][1], &bufferi, cid);
 
         #else
-        bufferStock = query_term_stock(terms[d][0], &bufferi, cid);
-        bufferStock2 = query_term_stock(terms[d][1], &bufferj, cid);
+        bufferStock = query_term_stock(terms[d-1][0], &bufferi, cid);
+        bufferStock2 = query_term_stock(terms[d-1][1], &bufferj, cid);
 
 
         #endif
@@ -710,7 +710,7 @@ void *doterms(void *arg) {
         }
 
 
-        printf("Intersection of %s and %s:\n", terms[d][0], terms[d][1]);
+        printf("Intersection of %s and %s:\n", terms[d-1][0], terms[d-1][1]);
         printf("doci %d\n", doci);
         for (int i=0; i < doci; i++) {
             printf("%d,",(DID) *(bufferD+i));
@@ -728,7 +728,7 @@ void *doterms(void *arg) {
 //        printf("Query time: ");
 
 //        print_timer(timer_query, cid);
-        queryTimeArr[currRepeat][d] = get_timer(timer_query, cid);
+        queryTimeArr[currRepeat][d-1] = get_timer(timer_query, cid);
         reset_Timer(timer_query, cid);
     }
     // pthread_mutex_unlock(&input_lock);
