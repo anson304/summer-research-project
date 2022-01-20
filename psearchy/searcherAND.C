@@ -631,6 +631,7 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
     int i = 0;
     int j = 0;
     while (i<bufferi && j<bufferj) {
+        printf("doci %d", *doci);
         PostIt p1 = *(bufferResult+i);
         PostIt p2 = *(bufferResult2+j);
         //printf("p1: %lld, p2: %lld", p1.dn, p2.dn);
@@ -652,7 +653,7 @@ DID *get_intersect(int *doci, int bufferi,  PostIt *bufferResult, int bufferj, P
             j++;
         }
     }
-    printf("doci %d", *doci);
+
     return bufferD;
 }
 
