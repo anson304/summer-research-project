@@ -687,16 +687,16 @@ void *doterms(void *arg) {
         DID *bufferD;
 
         #ifdef SST
-        bufferResult = query_term_sst(terms[d-1][0], &bufferi, cid);
-        bufferResult2 = query_term_sst(terms[d-1][1], &bufferj, cid);
+        bufferResult = query_term_sst(terms[d][0], &bufferi, cid);
+        bufferResult2 = query_term_sst(terms[d][1], &bufferj, cid);
 
         #elif PM_TABLE
-        bufferResult = query_term_pm(terms[d-1][0], &bufferi, cid);
-        bufferResult2 = query_term_pm(terms[d-1][1], &bufferi, cid);
+        bufferResult = query_term_pm(terms[d][0], &bufferi, cid);
+        bufferResult2 = query_term_pm(terms[d][1], &bufferi, cid);
 
         #else
-        bufferStock = query_term_stock(terms[d-1][0], &bufferi, cid);
-        bufferStock2 = query_term_stock(terms[d-1][1], &bufferj, cid);
+        bufferStock = query_term_stock(terms[d][0], &bufferi, cid);
+        bufferStock2 = query_term_stock(terms[d][1], &bufferj, cid);
 
 
         #endif
@@ -710,7 +710,7 @@ void *doterms(void *arg) {
         }
 
 
-        printf("Intersection of %s and %s:\n", terms[d-1][0], terms[d-1][1]);
+        printf("Intersection of %s and %s:\n", terms[d][0], terms[d][1]);
         printf("doci %d\n", doci);
         for (int i=0; i < doci; i++) {
             printf("%d,",(DID) *(bufferD+i));
@@ -959,7 +959,7 @@ int main(int argc, char *argv[]) {
         #endif
             pthread_t *tha = new pthread_t[ncore];
             void *value;
-            shared->did = 1;
+            shared->did = 0;
 
             for(int i = 0; i < ncore; i++)
                 pthread_create(&(tha[i]), NULL, &doterms, (void *) i);
